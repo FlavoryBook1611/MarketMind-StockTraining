@@ -1,0 +1,829 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MarketMind: The Veridia Exchange</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#E9EFF6; --surface:#FFFFFF; --surface2:#F3F6FA; --ink:#17253A; --muted:#566880; --line:#D2DBE6;
+  --up:#18794C; --upbg:#E2F4EA; --down:#BF372E; --downbg:#FBE6E3;
+  --term:#1C4BD0; --termbg:#E2EAFF; --gold:#DD951F; --goldsoft:#FFF2DA;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0F1724; --surface:#172234; --surface2:#1D2A3F; --ink:#E6ECF5; --muted:#9BAAC0; --line:#2B3A52;
+    --up:#4FC58D; --upbg:#173528; --down:#F27C71; --downbg:#3D1F1D;
+    --term:#8FAEFF; --termbg:#22345E; --gold:#F2B657; --goldsoft:#3A2D14;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0F1724; --surface:#172234; --surface2:#1D2A3F; --ink:#E6ECF5; --muted:#9BAAC0; --line:#2B3A52;
+  --up:#4FC58D; --upbg:#173528; --down:#F27C71; --downbg:#3D1F1D;
+  --term:#8FAEFF; --termbg:#22345E; --gold:#F2B657; --goldsoft:#3A2D14;
+  color-scheme: dark;
+}
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);}
+html{scroll-padding-top:calc(env(safe-area-inset-top,0px) + 70px);}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface);}
+h1,h2,h3{font-family:"Bricolage Grotesque","Atkinson Hyperlegible",system-ui,sans-serif;margin:0;line-height:1.15}
+button,input{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--term);outline-offset:2px;border-radius:4px}
+.num{font-variant-numeric:tabular-nums}
+.wrap{max-width:1320px;margin:0 auto;padding:0 16px}
+
+/* top bar */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:60px;flex-wrap:wrap;padding-top:6px;padding-bottom:6px}
+.brand{display:flex;align-items:baseline;gap:10px}
+.brand h1{font-size:1.45rem;font-weight:800;letter-spacing:-.02em}
+.brand span{color:var(--muted);font-size:.9rem}
+.tabs{display:flex;gap:4px}
+.tabs a{color:var(--ink);text-decoration:none;padding:8px 12px;border-radius:999px;font-weight:700;font-size:.95rem}
+.tabs a:hover{background:var(--surface2)}
+.tabs a[aria-current="page"]{background:var(--ink);color:var(--surface)}
+
+/* control strip */
+.strip{display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px;margin:16px 0 12px}
+.date{font-weight:700}
+.season{background:var(--goldsoft);color:var(--ink);border-radius:999px;padding:2px 10px;font-size:.85rem}
+.ctrl{display:flex;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:3px}
+.ctrl button{border:0;background:transparent;padding:6px 11px;border-radius:7px;cursor:pointer;font-weight:700;font-size:.9rem}
+.ctrl button[aria-pressed="true"]{background:var(--ink);color:var(--surface)}
+.index{margin-left:auto;display:flex;gap:8px;align-items:baseline}
+.index b{font-size:1.05rem}
+.up-t{color:var(--up)} .down-t{color:var(--down)}
+
+/* breaking card */
+.breaking{background:var(--surface);border:1px solid var(--line);border-left:10px solid var(--gold);border-radius:16px;padding:20px 22px 22px;margin-bottom:16px}
+.b-meta{display:flex;gap:10px;align-items:center;color:var(--muted);font-size:.9rem;margin:0 0 8px}
+.tag{background:var(--surface2);border:1px solid var(--line);border-radius:999px;padding:1px 10px;color:var(--ink);font-size:.82rem;font-weight:700}
+.b-head{font-size:clamp(1.35rem,1rem + 1.5vw,2.15rem);font-weight:800;letter-spacing:-.015em;max-width:30ch;line-height:1.18}
+.b-sub{color:var(--muted);margin:10px 0 0;max-width:62ch}
+.b-q{margin:18px 0 10px;font-size:1.1rem}
+.b-btns{display:flex;gap:8px;flex-wrap:wrap}
+.big{border:2px solid transparent;border-radius:12px;padding:10px 22px;font-weight:800;font-size:1.05rem;cursor:pointer}
+.big.up{background:var(--up);color:#fff}
+.big.down{background:var(--down);color:#fff}
+.big.ghost{background:transparent;border-color:var(--line)}
+.b-timer{height:8px;background:var(--surface2);border-radius:99px;margin:16px 0 6px;overflow:hidden;max-width:520px}
+.b-timer span{display:block;height:100%;background:var(--gold);border-radius:99px;transition:width 1s linear}
+.b-hint{color:var(--muted);font-size:.92rem;margin:0}
+.b-move{font-family:"Bricolage Grotesque",system-ui,sans-serif;font-weight:800;font-size:1.5rem;margin:16px 0 2px}
+.b-verdict{margin:0 0 10px;font-weight:700}
+.b-why{max-width:68ch;margin:8px 0}
+.b-note{background:var(--goldsoft);border-radius:10px;padding:8px 12px;max-width:68ch}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 0;padding:0;list-style:none}
+.chip{border-radius:8px;padding:2px 9px;font-size:.88rem;font-weight:700}
+.chip.u{background:var(--upbg);color:var(--up)} .chip.d{background:var(--downbg);color:var(--down)}
+.real{display:inline-block;margin-top:12px;color:var(--term);font-weight:700}
+
+/* blue key terms */
+.term{background:var(--termbg);color:var(--term);border:0;border-radius:5px;padding:0 .18em;margin:0;cursor:pointer;font:inherit;text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:3px;text-decoration-color:color-mix(in srgb,var(--term) 45%,transparent)}
+.term:hover{text-decoration-color:var(--term)}
+
+/* board */
+.board{display:grid;gap:16px;grid-template-columns:minmax(0,1fr)}
+@media (min-width:760px){.board{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.col3{grid-column:1/-1}}
+@media (min-width:1180px){.board{grid-template-columns:minmax(0,1.05fr) minmax(0,.9fr) minmax(0,1.1fr)}.col3{grid-column:auto}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px}
+.panel h2{font-size:1.15rem;font-weight:800;margin-bottom:10px}
+.col3{display:grid;gap:16px;align-content:start}
+
+/* feed */
+.feed{list-style:none;margin:0;padding:0;max-height:640px;overflow:auto}
+.feed li{padding:12px 0;border-top:1px solid var(--line)}
+.feed li:first-child{border-top:0;padding-top:0}
+.f-day{color:var(--muted);font-size:.82rem}
+.f-text{margin:2px 0 6px;font-weight:700}
+.feed details summary{cursor:pointer;color:var(--muted);font-size:.9rem}
+.feed details p{margin:6px 0 0;font-size:.95rem}
+.empty{color:var(--muted)}
+
+/* stocks */
+.rows{display:grid;gap:2px}
+.row{display:grid;grid-template-columns:minmax(0,1fr) 72px 76px 64px;align-items:center;gap:8px;width:100%;text-align:left;background:transparent;border:0;border-left:4px solid transparent;border-radius:8px;padding:8px 8px 8px 10px;cursor:pointer}
+.row:hover{background:var(--surface2)}
+.row[aria-pressed="true"]{background:var(--surface2);border-left-color:var(--ink)}
+.row .t{font-weight:800;font-size:.95rem}
+.row .n{display:block;color:var(--muted);font-size:.82rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .p{text-align:right;font-weight:700}
+.row .c{text-align:right;font-size:.9rem;font-weight:700}
+.row svg{width:72px;height:24px}
+
+/* detail */
+.d-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.d-head h2{margin:0}
+.d-sub{color:var(--muted);margin:2px 0 0;font-size:.9rem}
+.d-price{text-align:right}
+.d-price b{display:block;font-size:1.4rem}
+.chart{width:100%;height:150px;display:block;margin:12px 0 4px}
+.chart-cap{color:var(--muted);font-size:.8rem;margin:0 0 10px}
+.d-about{margin:6px 0}
+.traits{margin:0;padding:0;list-style:none;font-size:.95rem}
+.traits li{margin:4px 0}
+.trade{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:14px}
+.trade label{font-weight:700}
+.trade input{width:90px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface2)}
+.btn{border:0;border-radius:8px;padding:9px 16px;font-weight:800;cursor:pointer}
+.btn.buy{background:var(--up);color:#fff}
+.btn.sell{background:var(--down);color:#fff}
+.btn.plain{background:var(--surface2);border:1px solid var(--line)}
+.msg{min-height:1.4em;margin:8px 0 0;font-size:.92rem}
+
+/* portfolio */
+.stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 16px;margin:0 0 12px}
+.stats dt{color:var(--muted);font-size:.85rem}
+.stats dd{margin:0;font-weight:800;font-size:1.1rem}
+.tbl-wrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+th,td{padding:6px 8px;text-align:right;border-top:1px solid var(--line);white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+th{color:var(--muted);font-weight:700;border-top:0}
+
+/* terms + history pages */
+.page{padding:20px 0 10px}
+.page h2.title{font-size:clamp(1.6rem,1.2rem + 1.4vw,2.4rem);font-weight:800;letter-spacing:-.02em}
+.lede{color:var(--muted);max-width:62ch;margin:8px 0 18px}
+.search{width:100%;max-width:420px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);margin-bottom:16px}
+.glossary{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(280px,1fr))}
+.gterm{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.gterm h3{font-size:1.1rem;font-weight:800;color:var(--term)}
+.gterm p{margin:6px 0 0}
+.gterm .ex{color:var(--muted);font-size:.93rem}
+.seen{display:inline-block;margin-top:8px;font-size:.82rem;font-weight:700;color:var(--up)}
+.hist{display:grid;gap:16px}
+.hcard{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px 20px;display:grid;gap:4px 24px;grid-template-columns:minmax(0,1fr)}
+@media (min-width:760px){.hcard{grid-template-columns:150px minmax(0,1fr)}}
+.hyear{font-family:"Bricolage Grotesque",system-ui,sans-serif;font-weight:800;font-size:1.9rem;line-height:1;color:var(--gold)}
+.hcard h3{font-size:1.3rem;font-weight:800;margin-bottom:6px}
+.hcard p{margin:6px 0;max-width:70ch}
+.hcard.flash{outline:3px solid var(--gold);outline-offset:3px}
+
+/* dialog */
+dialog{border:1px solid var(--line);border-radius:14px;padding:0;max-width:min(520px,calc(100vw - 32px));background:var(--surface);color:var(--ink)}
+dialog::backdrop{background:rgba(10,18,30,.45)}
+.dlg{padding:20px 22px}
+.dlg h3{font-size:1.4rem;font-weight:800;color:var(--term)}
+.dlg .ctx{background:var(--surface2);border-radius:10px;padding:10px 12px;margin-top:12px}
+.dlg .ctx strong{display:block;margin-bottom:2px}
+.dlg-foot{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:16px}
+.dlg-foot a{color:var(--term);font-weight:700}
+
+footer{color:var(--muted);font-size:.85rem;padding:24px 0 32px;max-width:70ch}
+[hidden]{display:none!important}
+@media (prefers-reduced-motion: reduce){.b-timer span{transition:none}}
+@media (max-width:560px){.brand span{display:none}.index{margin-left:0}.row{grid-template-columns:minmax(0,1fr) 70px 58px}.row svg{display:none}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <div class="brand"><h1>MarketMind</h1><span>The Veridia Exchange</span></div>
+    <nav class="tabs" aria-label="Sections">
+      <a href="#market" data-view="market">Market</a>
+      <a href="#terms" data-view="terms">Key terms</a>
+      <a href="#history" data-view="history">Past events</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <section id="view-market">
+    <div class="strip">
+      <span class="date num" id="date"></span>
+      <span class="season" id="season" hidden>Earnings season</span>
+      <div class="ctrl" role="group" aria-label="Clock">
+        <button id="play" aria-pressed="false">Pause</button>
+        <button data-speed="1">1×</button>
+        <button data-speed="2">2×</button>
+        <button data-speed="4">4×</button>
+      </div>
+      <div class="ctrl" role="group" aria-label="Mode">
+        <button data-mode="learn">Learning</button>
+        <button data-mode="guess">Guess</button>
+      </div>
+      <div class="index num"><span>Veridia index</span><b id="idx"></b><span id="idxc"></span></div>
+    </div>
+
+    <section class="breaking" id="breaking" aria-live="polite"></section>
+
+    <div class="board">
+      <section class="panel">
+        <h2>News feed</h2>
+        <ol class="feed" id="feed"></ol>
+      </section>
+      <section class="panel">
+        <h2>Stocks</h2>
+        <div class="rows" id="rows"></div>
+      </section>
+      <div class="col3">
+        <section class="panel" id="detail">
+          <div class="d-head">
+            <div><h2 id="d-name"></h2><p class="d-sub" id="d-sub"></p></div>
+            <div class="d-price num"><b id="d-price"></b><span id="d-chg"></span></div>
+          </div>
+          <svg class="chart" id="d-chart" viewBox="0 0 400 150" preserveAspectRatio="none" role="img" aria-label="Price chart"></svg>
+          <p class="chart-cap">Last 80 trading days. Gold lines mark days when news hit this stock.</p>
+          <p class="d-about" id="d-about"></p>
+          <ul class="traits" id="d-traits"></ul>
+          <div class="trade">
+            <label for="qty">Shares</label>
+            <input id="qty" type="number" min="1" step="1" value="10" inputmode="numeric">
+            <button class="btn buy" id="buy">Buy</button>
+            <button class="btn sell" id="sell">Sell</button>
+          </div>
+          <p class="msg" id="msg" role="status"></p>
+          <p class="d-sub" id="d-pos"></p>
+        </section>
+        <section class="panel">
+          <h2>Your portfolio</h2>
+          <dl class="stats num">
+            <div><dt>Net worth</dt><dd id="p-worth"></dd></div>
+            <div><dt>Return</dt><dd id="p-ret"></dd></div>
+            <div><dt>Cash</dt><dd id="p-cash"></dd></div>
+            <div><dt>Guesses right</dt><dd id="p-guess"></dd></div>
+          </dl>
+          <div class="tbl-wrap"><table class="num" id="p-table"></table></div>
+          <p style="margin:14px 0 0"><button class="btn plain" id="reset">Start a new game</button></p>
+        </section>
+      </div>
+    </div>
+  </section>
+
+  <section id="view-terms" class="page" hidden>
+    <h2 class="title">Key terms</h2>
+    <p class="lede">Every blue word in a headline lives here. Click one in the game to see what it means in that story, or browse them all.</p>
+    <input class="search" id="tsearch" type="search" placeholder="Search terms" aria-label="Search terms">
+    <div class="glossary" id="glossary"></div>
+  </section>
+
+  <section id="view-history" class="page" hidden>
+    <h2 class="title">Past events</h2>
+    <p class="lede">Veridia is made up, but the patterns come from real markets. These moments from history show the same cause and effect you’ll see in the game.</p>
+    <div class="hist" id="hist"></div>
+  </section>
+
+  <footer>MarketMind is a learning game set in a made-up country. The companies and headlines are fictional, prices use pretend money, and nothing here is financial advice.</footer>
+</main>
+
+<dialog id="dlg"><div class="dlg" id="dlg-body"></div></dialog>
+
+<script>
+/* ---------- data ---------- */
+const COMPANIES = [
+  {t:'LMC',name:'Lumen Chips',sector:'Semiconductors',style:'growth',price:142,beta:1.4,vol:0.021,sens:{rates:-1.2,oil:-0.2,economy:1.2,inflation:-1.0},about:'Designs computer chips for phones, cars and data centers.',product:'a faster AI chip'},
+  {t:'SKH',name:'SkyHarbor Airlines',sector:'Airlines',style:'cyclical',price:38,beta:1.3,vol:0.023,sens:{rates:-0.5,oil:-2.2,economy:1.6,inflation:-0.8},about:'Flies passengers across Veridia and overseas. Fuel is its biggest cost.',product:'nonstop routes to five new cities'},
+  {t:'GBG',name:'Greenbasket Grocers',sector:'Grocery stores',style:'defensive',price:61,beta:0.5,vol:0.010,sens:{rates:-0.2,oil:-0.3,economy:0.2,inflation:-0.3},about:'Runs 900 supermarkets. People buy groceries in good times and bad.',product:'a same-day delivery service'},
+  {t:'NVB',name:'Northvale Bank',sector:'Banking',style:'cyclical',price:54,beta:1.1,vol:0.016,sens:{rates:1.2,oil:0,economy:1.4,inflation:0.2},about:'Takes deposits and makes loans to families and businesses.',product:'a new mobile banking app'},
+  {t:'RDE',name:'Ridgeline Energy',sector:'Oil and gas',style:'cyclical',price:77,beta:0.9,vol:0.019,sens:{rates:0,oil:2.3,economy:0.8,inflation:0.6},about:'Drills for oil and gas and sells it around the world.',product:'a cleaner-burning fuel blend'},
+  {t:'PWP',name:'Pulsewave Pharma',sector:'Medicine',style:'defensive',price:96,beta:0.7,vol:0.017,sens:{rates:-0.3,oil:0,economy:0.2,inflation:-0.2},about:'Develops and sells prescription drugs.',product:'a once-a-week allergy pill'},
+  {t:'CBM',name:'Cobalt Motors',sector:'Electric cars',style:'growth',price:210,beta:1.7,vol:0.028,sens:{rates:-1.6,oil:0.5,economy:1.4,inflation:-1.1},about:'Builds electric cars. Most buyers use a loan to pay for them.',product:'a $30,000 electric sedan'},
+  {t:'HBH',name:'Harbor Homes',sector:'Homebuilding',style:'cyclical',price:47,beta:1.3,vol:0.020,sens:{rates:-2.2,oil:-0.2,economy:1.2,inflation:-1.3},about:'Builds new houses. Sales depend on mortgage rates.',product:'a line of energy-efficient starter homes'},
+  {t:'STM',name:'Streamly Media',sector:'Streaming',style:'growth',price:33,beta:1.2,vol:0.021,sens:{rates:-0.9,oil:0,economy:0.6,inflation:-0.6},about:'Streams movies and shows for a monthly subscription.',product:'a cheaper ad-supported plan'},
+  {t:'IWS',name:'Ironworks Steel',sector:'Steel',style:'cyclical',price:29,beta:1.3,vol:0.019,sens:{rates:-0.4,oil:-0.4,economy:1.8,inflation:0.2},about:'Makes steel for buildings, bridges and cars.',product:'a lighter, stronger steel for cars'},
+  {t:'CNS',name:'Cloudnest Software',sector:'Software',style:'growth',price:188,beta:1.4,vol:0.022,sens:{rates:-1.8,oil:0,economy:0.9,inflation:-1.2},about:'Sells online software that businesses pay for every month.',product:'an AI assistant for small businesses'},
+  {t:'VPU',name:'Veridia Power',sector:'Electric utility',style:'defensive',price:72,beta:0.4,vol:0.009,sens:{rates:-1.1,oil:-0.3,economy:0.1,inflation:-0.4},about:'Supplies electricity to millions of homes. Steady, but carries a lot of debt.',product:'a home battery program'}
+];
+
+const TERMS = {
+  'earnings':{n:'Earnings',d:'A company’s profit over a period, usually reported every three months (a quarter).',e:'If a company sells $10 million of goods and spends $8 million, its earnings are $2 million.'},
+  'estimates':{n:'Estimates',d:'What experts predicted a company would earn. Stocks react to how results compare with estimates, not just whether the results are good.',e:'Earning $1.10 a share when the estimate was $1.00 is called a “beat.”'},
+  'revenue':{n:'Revenue',d:'All the money a company brings in from sales, before any costs are taken out.',e:'A grocery chain’s revenue is everything shoppers paid at the register.'},
+  'guidance':{n:'Guidance',d:'A company’s own forecast for the coming months. Changes to guidance often move a stock more than past results, because investors care about the future.',e:'Raising full-year guidance tells investors business is better than the company expected.'},
+  'interest-rates':{n:'Interest rates',d:'The cost of borrowing money. When rates rise, loans for homes, cars and businesses get more expensive.',e:'A rate hike can add hundreds of dollars a year to a mortgage payment.'},
+  'central-bank':{n:'Central bank',d:'The institution that sets a country’s main interest rate. In the US it’s the Federal Reserve; in this game it’s the Bank of Veridia.',e:'Central banks raise rates to cool inflation and cut them to boost a slow economy.'},
+  'inflation':{n:'Inflation',d:'How fast prices rise across the economy. High inflation often pushes central banks to raise interest rates.',e:'4% inflation means things that cost $100 last year cost about $104 now.'},
+  'jobs-report':{n:'Jobs report',d:'A monthly government report on how many jobs were added and the unemployment rate. It’s a quick health check on the economy.',e:'A strong report suggests more people have paychecks to spend.'},
+  'unemployment':{n:'Unemployment rate',d:'The share of people who want a job but can’t find one.',e:'Rising unemployment usually means less spending on travel, cars and homes.'},
+  'recession':{n:'Recession',d:'A period when the economy shrinks, usually for several months, with falling sales and rising job losses.',e:'In recessions, investors often move money into steady businesses like grocers and utilities.'},
+  'oil-prices':{n:'Oil prices',d:'The price of crude oil. It sets fuel costs for airlines, shipping and drivers, and the profits of energy companies.',e:'Higher oil helps oil producers but raises an airline’s biggest cost.'},
+  'supply-chain':{n:'Supply chain',d:'The network of suppliers, factories and shipping that gets a product made and delivered. When one link breaks, shortages follow.',e:'A chip shortage can stop car factories even when every other part is ready.'},
+  'regulator':{n:'Regulators',d:'Government agencies that make sure companies follow the rules. Investigations can end in fines or forced changes.',e:'Investors dislike the uncertainty an investigation creates.'},
+  'acquisition':{n:'Acquisition',d:'When one company buys another.',e:'Shares of the company being bought usually jump toward the offer price.'},
+  'premium':{n:'Premium',d:'How much more a buyer offers than the stock’s current price.',e:'A 30% premium on a $50 stock means an offer of $65 a share.'},
+  'dividend':{n:'Dividend',d:'A slice of profits a company pays out to its shareholders, usually every quarter.',e:'Raising a dividend signals that management is confident about future cash.'},
+  'buyback':{n:'Stock buyback',d:'When a company buys its own shares. With fewer shares around, each remaining share owns a bigger piece of the company.',e:'Buybacks usually give a stock a small boost.'},
+  'analyst':{n:'Analysts',d:'Researchers at banks and investment firms who study companies and publish ratings like “buy” or “sell.”',e:'A well-known analyst changing a rating can move a stock for a day or two.'},
+  'upgrade':{n:'Upgrade',d:'When an analyst raises a stock’s rating, for example from “hold” to “buy.”',e:'Upgrades often cause a modest, short-lived bump.'},
+  'downgrade':{n:'Downgrade',d:'When an analyst lowers a stock’s rating, for example from “buy” to “sell.”',e:'Downgrades often cause a modest, short-lived dip.'},
+  'ceo':{n:'CEO',d:'Chief executive officer, the person who runs a company day to day.',e:'A sudden CEO exit worries investors because they don’t know who’s steering, or why the old boss left.'},
+  'drug-approval':{n:'Drug approval',d:'Permission from health regulators to sell a new medicine. Approval can unlock years of sales.',e:'One approved drug can be worth billions to a drugmaker.'},
+  'clinical-trial':{n:'Clinical trial',d:'A test of a new medicine on patients to see whether it’s safe and works. Late-stage trials are the final hurdle.',e:'A failed late-stage trial can wipe out years of work in one day.'},
+  'priced-in':{n:'Priced in',d:'When investors already expected some news, so the stock barely moves, or even falls, when it arrives.',e:'Traders sum it up as “buy the rumor, sell the news.”'},
+  'defensive':{n:'Defensive stock',d:'A company whose sales stay steady in good times and bad, like grocers, drugmakers and power utilities.',e:'Defensive stocks usually fall less when the economy weakens, and rise less when it booms.'},
+  'cyclical':{n:'Cyclical stock',d:'A company whose sales rise and fall with the economy, like airlines, banks, homebuilders and steelmakers.',e:'People take more flights and buy more houses when times are good.'},
+  'growth-stock':{n:'Growth stock',d:'A company valued for fast future growth more than today’s profits. Growth stocks are extra sensitive to interest rates.',e:'When rates rise, profits expected years from now are worth less today, so growth stocks often drop.'},
+  'volatility':{n:'Volatility',d:'How much and how quickly a price swings up and down.',e:'An electric carmaker usually swings far more each day than a power company.'},
+  'bear-market':{n:'Bear market',d:'A fall of 20% or more from a recent high.',e:'Bear markets often come with recessions, but not always.'},
+  'bull-market':{n:'Bull market',d:'A long stretch of rising prices.',e:'Bull markets can last for years, with smaller dips along the way.'}
+};
+
+const HISTORY = [
+  {id:'rates2022',year:'2022',title:'The fast rate hikes',
+   what:'To fight the highest inflation in about 40 years, the US Federal Reserve raised interest rates from near zero to over 4% within a single year.',
+   moved:'Fast-growing tech stocks fell hardest; the tech-heavy Nasdaq index lost about a third of its value that year. Energy companies, helped by high oil prices, were among the few winners.',
+   lesson:'[[growth-stock|Growth stocks]] are extra sensitive to [[interest-rates|interest rates]], because their profits are expected far in the future.',
+   game:'Rate hike and hot inflation headlines.'},
+  {id:'crisis2008',year:'2008',title:'The financial crisis',
+   what:'Risky home loans went bad, and the investment bank Lehman Brothers collapsed in September 2008. Lending froze around the world and a deep [[recession|recession]] followed.',
+   moved:'The S&P 500 fell more than 50% from its 2007 peak to its March 2009 low. Banks and homebuilders were hit hardest, while grocers and utilities held up better.',
+   lesson:'When the economy weakens, [[defensive|defensive stocks]] usually fall less than [[cyclical|cyclical]] ones.',
+   game:'Weak jobs reports and recession fears.'},
+  {id:'covid2020',year:'2020',title:'The COVID crash',
+   what:'As the pandemic spread, the S&P 500 fell about a third in roughly a month, one of the fastest drops of that size on record.',
+   moved:'Airlines and travel companies collapsed as flights emptied. Streaming, software and grocery stocks held up or rose as people stayed home. The market was back at record highs by August.',
+   lesson:'The same news can hurt one industry and help another.',
+   game:'Travel scare headlines.'},
+  {id:'oil1973',year:'1973',title:'The oil embargo',
+   what:'Arab oil producers cut off oil shipments to the US and several other countries, and oil prices roughly quadrupled within months.',
+   moved:'Together with rising [[inflation|inflation]], it fed a [[bear-market|bear market]] that cut US stocks nearly in half by late 1974. Energy producers fared far better than airlines and automakers.',
+   lesson:'[[oil-prices|Oil prices]] ripple through the whole economy.',
+   game:'Oil price spikes.'},
+  {id:'oil2014',year:'2014–16',title:'The oil price crash',
+   what:'A boom in US shale drilling helped push oil from over $100 a barrel in mid-2014 to under $30 in early 2016.',
+   moved:'Energy stocks fell sharply. Airlines, whose biggest cost is fuel, saw profits jump.',
+   lesson:'Cheaper oil hurts producers and helps the businesses that buy fuel.',
+   game:'Oil price drops.'},
+  {id:'dotcom2000',year:'2000–02',title:'The dot-com bust',
+   what:'Investors poured money into internet companies, many with no profits at all. The bubble burst in March 2000.',
+   moved:'The Nasdaq lost about 78% of its value by October 2002, and many internet companies went bankrupt.',
+   lesson:'When excitement runs far ahead of [[earnings|earnings]], prices can fall hard.',
+   game:'Earnings misses and guidance cuts at growth companies.'}
+];
+
+/* ---------- helpers ---------- */
+const $ = id => document.getElementById(id);
+const rand = (a,b) => a + Math.random()*(b-a);
+const randInt = (a,b) => Math.floor(rand(a,b+1));
+const pick = arr => arr[Math.floor(Math.random()*arr.length)];
+function gauss(){let u=0,v=0;while(!u)u=Math.random();while(!v)v=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
+const co = t => COMPANIES.find(c=>c.t===t);
+const money = n => (n<0?'−$':'$') + Math.abs(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+const pct = v => (v>=0?'+':'−') + Math.abs(v).toFixed(1) + '%';
+const cls = v => v>=0 ? 'up-t' : 'down-t';
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const dateStr = d => `${MONTHS[Math.floor((d%252)/21)]} ${d%21+1}, Year ${Math.floor(d/252)+1}`;
+const isEarnings = d => { const q=d%63; return q>=8 && q<=30; };
+function joinList(a){ if(a.length<2) return a.join(''); return a.slice(0,-1).join(', ') + ' and ' + a[a.length-1]; }
+function renderText(s, evId){
+  return s.replace(/\[\[([a-z-]+)\|([^\]]+)\]\]/g, (m,k,label) =>
+    `<button type="button" class="term" data-term="${k}"${evId?` data-ev="${evId}"`:''}>${label}</button>`);
+}
+
+/* ---------- headline generators ---------- */
+function macroEffects(base, factor, mag){
+  const e={}; COMPANIES.forEach(c=>{ e[c.t] = base*c.beta + (factor?mag*c.sens[factor]:0); }); return e;
+}
+const MACRO = [
+  {k:'rateHike',tag:'Economy',related:'rates2022',
+   text:'The [[central-bank|Bank of Veridia]] raises [[interest-rates|interest rates]] by 0.5% to fight [[inflation|inflation]]',
+   why:'Higher rates make borrowing more expensive. Banks can charge more for loans, so they often gain. Homebuilders and carmakers lose because their customers borrow to buy, and [[growth-stock|growth stocks]] drop because profits expected years from now are worth less today.',
+   eff:()=>macroEffects(-0.6,'rates',1.4)},
+  {k:'rateCut',tag:'Economy',
+   text:'The [[central-bank|Bank of Veridia]] cuts [[interest-rates|interest rates]] by 0.5% to support a slowing economy',
+   why:'Cheaper borrowing helps businesses and buyers. Homebuilders, carmakers and [[growth-stock|growth stocks]] usually rise the most. Banks may slip because they earn less on loans.',
+   eff:()=>macroEffects(0.7,'rates',-1.4)},
+  {k:'oilSpike',tag:'Energy',related:'oil1973',
+   text:'[[oil-prices|Oil prices]] jump 12% after a pipeline shutdown squeezes [[supply-chain|supply]]',
+   why:'Energy companies sell oil, so a higher price means more profit. Airlines burn huge amounts of fuel, so their costs jump. Electric carmakers can gain as drivers think about ditching gas.',
+   eff:()=>macroEffects(-0.3,'oil',2.4)},
+  {k:'oilDrop',tag:'Energy',related:'oil2014',
+   text:'[[oil-prices|Oil prices]] slide 10% as producers pump more than expected',
+   why:'Cheaper oil cuts energy companies’ profits but lowers fuel bills for airlines, shippers and shoppers.',
+   eff:()=>macroEffects(0.2,'oil',-2.2)},
+  {k:'strongJobs',tag:'Economy',
+   text:'The monthly [[jobs-report|jobs report]] beats expectations as [[unemployment|unemployment]] falls to 3.6%',
+   why:'More people working means more spending on travel, cars and homes, which lifts [[cyclical|cyclical stocks]] like airlines, steel and banks. Steady [[defensive|defensive stocks]] barely react.',
+   eff:()=>macroEffects(0.5,'economy',1.1)},
+  {k:'weakJobs',tag:'Economy',related:'crisis2008',
+   text:'The [[jobs-report|jobs report]] disappoints as [[unemployment|unemployment]] rises, stoking [[recession|recession]] fears',
+   why:'Fewer jobs means less spending. [[cyclical|Cyclical stocks]] like airlines and steelmakers fall hardest, while [[defensive|defensive stocks]] such as grocers and power companies hold up better.',
+   eff:()=>macroEffects(-0.8,'economy',-1.4)},
+  {k:'hotInflation',tag:'Economy',related:'rates2022',
+   text:'[[inflation|Inflation]] comes in hotter than expected at 4.8%',
+   why:'Investors now expect the [[central-bank|central bank]] to raise [[interest-rates|interest rates]], which hits rate-sensitive [[growth-stock|growth stocks]] and homebuilders. Energy can hold up because oil is part of what’s getting pricier.',
+   eff:()=>macroEffects(-0.8,'inflation',1.3)},
+  {k:'coolInflation',tag:'Economy',
+   text:'[[inflation|Inflation]] cools more than expected to 2.1%',
+   why:'Slower price rises mean the [[central-bank|central bank]] may not need higher rates. That’s good news for [[growth-stock|growth stocks]], homebuilders and carmakers.',
+   eff:()=>macroEffects(0.7,'inflation',-1.2)},
+  {k:'travelScare',tag:'Health',related:'covid2020',
+   text:'Health officials warn of a fast-spreading flu as travel bookings plunge',
+   why:'Airlines lose customers right away. People staying home stream more shows and buy more groceries, and drugmakers may sell more medicine, so those companies can rise while the wider market dips.',
+   eff:()=>{const e=macroEffects(-0.9,null,0); e.SKH=-7; e.STM=3; e.GBG=1.8; e.PWP=2.5; return e;}},
+  {k:'chipSqueeze',tag:'Industry',
+   text:'Chip [[supply-chain|supply chain]] squeeze: Lumen Chips raises prices as automakers wait for parts',
+   why:'When chips are scarce, the chipmaker can charge more, so its profits rise. Carmakers can’t finish vehicles without chips, so they sell fewer cars.',
+   eff:()=>({LMC:4,CBM:-5,CNS:-0.8})}
+];
+
+const growthRel = c => c.style==='growth' ? 'dotcom2000' : null;
+const CEV = [
+  {k:'beat',w:1,earn:true,tag:'Earnings',make:c=>({surprise:0.15,
+    text:`${c.name} [[earnings|earnings]] beat [[estimates|estimates]] as [[revenue|revenue]] grows ${randInt(9,24)}%`,
+    why:`${c.name} made more profit than experts predicted. Stocks move on the gap between results and [[estimates|expectations]], so a clear beat usually sends the price up.`,
+    eff:{[c.t]:rand(3,7)}})},
+  {k:'miss',w:1,earn:true,tag:'Earnings',make:c=>({related:growthRel(c),
+    text:`${c.name} [[earnings|earnings]] miss [[estimates|estimates]] as [[revenue|revenue]] falls ${randInt(3,12)}%`,
+    why:`${c.name} earned less than experts expected. Investors sell because they now think future profits will be lower too.`,
+    eff:{[c.t]:-rand(4,9)}})},
+  {k:'guideUp',w:0.7,earn:true,tag:'Earnings',make:c=>({surprise:0.12,
+    text:`${c.name} raises its full-year [[guidance|guidance]] on strong demand`,
+    why:`${c.name} told investors it now expects a better year. Because stock prices are about the future, a brighter forecast often matters more than past results.`,
+    eff:{[c.t]:rand(2.5,6)}})},
+  {k:'guideDown',w:0.7,earn:true,tag:'Earnings',make:c=>({related:growthRel(c),
+    text:`${c.name} cuts its [[guidance|guidance]], warning that sales are slowing`,
+    why:`${c.name} now expects a weaker year than it said before. A guidance cut is one of the most painful headlines for a stock because it lowers the whole outlook.`,
+    eff:{[c.t]:-rand(5,10)}})},
+  {k:'ceo',w:0.6,tag:'Company',make:c=>({
+    text:`${c.name} [[ceo|CEO]] steps down unexpectedly`,
+    why:`A surprise exit raises questions: is something wrong that the public doesn’t know yet? Investors dislike uncertainty, so the stock usually dips until a new leader is named.`,
+    eff:{[c.t]:-rand(2.5,6)}})},
+  {k:'probe',w:0.6,tag:'Company',make:c=>({
+    text:`[[regulator|Regulators]] open an investigation into ${c.name}’s sales practices`,
+    why:`An investigation could end in fines or forced changes to how ${c.name} does business. Nobody knows how big the damage will be yet, and that uncertainty weighs on the stock.`,
+    eff:{[c.t]:-rand(3,8)}})},
+  {k:'launch',w:0.8,tag:'Company',make:c=>({surprise:0.15,
+    text:`${c.name} unveils ${c.product}, and early reviews are strong`,
+    why:`A hit product can mean years of new [[revenue|revenue]]. Strong early reviews make investors more confident about future sales.`,
+    eff:{[c.t]:rand(1.5,4.5)}})},
+  {k:'buyback',w:0.5,tag:'Company',make:c=>({
+    text:`${c.name} announces a $${randInt(1,4)} billion [[buyback|stock buyback]]`,
+    why:`Buying back shares spreads ${c.name}’s profits over fewer shares, and it signals that management thinks the stock is a good deal.`,
+    eff:{[c.t]:rand(1,3.5)}})},
+  {k:'dividend',w:0.5,tag:'Company',make:c=>({
+    text:`${c.name} raises its [[dividend|dividend]] by ${randInt(5,15)}%`,
+    why:`A bigger dividend puts more cash in shareholders’ pockets and shows management is confident about future profits.`,
+    eff:{[c.t]:rand(0.5,2.5)}})},
+  {k:'upgrade',w:0.7,tag:'Analysts',make:c=>({
+    text:`[[analyst|Analysts]] at Coastline Capital [[upgrade|upgrade]] ${c.name} to “buy”`,
+    why:`A respected research firm now recommends ${c.name}, and some investors follow its lead. Upgrades usually cause a modest, short-lived bump.`,
+    eff:{[c.t]:rand(1.5,4)}})},
+  {k:'downgrade',w:0.7,tag:'Analysts',make:c=>({
+    text:`[[analyst|Analysts]] at Coastline Capital [[downgrade|downgrade]] ${c.name} to “sell”`,
+    why:`A respected research firm now thinks ${c.name} will lag, and some investors sell in response. Downgrades usually cause a modest, short-lived dip.`,
+    eff:{[c.t]:-rand(2,5)}})},
+  {k:'deal',w:0.35,tag:'Deals',make:c=>{
+    const a=pick(COMPANIES.filter(x=>x.t!==c.t)); const prem=randInt(25,40);
+    return {fixed:true,
+      text:`${a.name} agrees to buy ${c.name} at a ${prem}% [[premium|premium]] in a major [[acquisition|acquisition]]`,
+      why:`${a.name} is offering more than ${c.name}’s current price, so ${c.name}’s stock jumps toward the offer, usually stopping a bit below it in case the deal falls apart. Buyers often slip because they’re spending a lot of cash.`,
+      eff:{[c.t]:prem*rand(0.8,0.9),[a.t]:-rand(1,4)}};}},
+  {k:'approval',w:0.4,only:'PWP',tag:'Medicine',make:c=>({
+    text:`Pulsewave Pharma wins [[drug-approval|approval]] for its new heart drug after a successful [[clinical-trial|clinical trial]]`,
+    why:`Approval means Pulsewave can finally sell a drug it spent years developing. That could mean billions in new [[revenue|revenue]].`,
+    eff:{PWP:rand(7,14)}})},
+  {k:'trialFail',w:0.35,only:'PWP',tag:'Medicine',make:c=>({
+    text:`Pulsewave Pharma’s cancer drug fails a late-stage [[clinical-trial|clinical trial]]`,
+    why:`Years of research, and the sales investors were counting on, just disappeared. Drug stocks can fall hard on a single trial result.`,
+    eff:{PWP:-rand(10,20)}})}
+];
+
+function generate(){
+  const earn = isEarnings(S.day);
+  const pool = [];
+  MACRO.forEach(m => pool.push({k:m.k, w:earn?0.45:1, run:()=>({tag:m.tag,related:m.related||null,text:m.text,why:m.why,eff:m.eff()})}));
+  CEV.forEach(ce => pool.push({k:ce.k, w:ce.w*(earn&&ce.earn?4:1), run:()=>{
+    const c = ce.only ? co(ce.only) : pick(COMPANIES);
+    return Object.assign({tag:ce.tag}, ce.make(c));
+  }}));
+  const choices = pool.filter(p=>p.k!==S.lastKind);
+  let r = Math.random()*choices.reduce((s,p)=>s+p.w,0), chosen = choices[0];
+  for(const p of choices){ r-=p.w; if(r<=0){chosen=p;break;} }
+  S.lastKind = chosen.k;
+  const raw = chosen.run();
+  const exp = {};
+  Object.entries(raw.eff).forEach(([t,v])=>{ if(Math.abs(v)>=0.15) exp[t]=v; });
+  let target=null, best=0;
+  Object.entries(exp).forEach(([t,v])=>{ if(Math.abs(v)>best){best=Math.abs(v);target=t;} });
+  const surprised = !!raw.surprise && Math.random()<raw.surprise;
+  const actual = {};
+  Object.entries(exp).forEach(([t,v])=>{
+    let a = v*(raw.fixed?rand(0.95,1.05):rand(0.7,1.3));
+    if(surprised && t===target) a = -Math.sign(v)*rand(0.8,2.5);
+    actual[t] = Math.round(a*100)/100;
+  });
+  return {id:++S.uid, day:S.day, tag:raw.tag, related:raw.related||null, text:raw.text, why:raw.why, target, actual, surprised, phase:'new', guess:null, correct:null};
+}
+
+/* ---------- state ---------- */
+const KEY='marketmind-veridia-v1';
+const SPEEDS={1:10000,2:5000,4:2500};
+let S, timer=null, guessTimer=null, guessLeft=0, selected='LMC', lastBreakKey='', lastFeedKey='';
+const GUESS_SECS=12;
+
+function newState(){
+  return {day:0,cash:10000,start:10000,mode:'learn',speed:1,running:true,
+    stocks:COMPANIES.map(c=>({t:c.t,price:c.price,prev:c.price,hist:[c.price],news:[]})),
+    pos:{},feed:[],pending:{},score:{right:0,total:0,streak:0},seen:[],nextNews:3,uid:0,live:null,lastKind:null,idxPrev:1000};
+}
+function load(){
+  try{ const raw=localStorage.getItem(KEY); if(raw){ const s=JSON.parse(raw); if(s && s.stocks && s.stocks.length===COMPANIES.length) return s; } }catch(e){}
+  return newState();
+}
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
+const st = t => S.stocks.find(s=>s.t===t);
+const liveEv = () => S.feed.find(e=>e.id===S.live);
+const guessPending = () => { const ev=liveEv(); return !!ev && ev.phase==='guess'; };
+function indexVal(){ return S.stocks.reduce((s,x)=>s + x.price/co(x.t).price, 0)/S.stocks.length*1000; }
+function worth(){ return S.cash + Object.entries(S.pos).reduce((s,[t,p])=>s + p.qty*st(t).price, 0); }
+
+/* ---------- simulation ---------- */
+function tick(){
+  S.idxPrev = indexVal();
+  S.day++;
+  const m = 0.0003 + gauss()*0.008;
+  S.stocks.forEach(s=>{
+    const c=co(s.t); s.prev=s.price;
+    let r = 0.0002 + c.beta*m + gauss()*c.vol*0.75;
+    const p=S.pending[s.t]; if(p && p.length) r += p.shift();
+    s.price = Math.max(0.5, s.price*(1+r));
+    s.hist.push(s.price); if(s.hist.length>500) s.hist.shift();
+    s.news = s.news.filter(d=>d>S.day-500);
+  });
+  S.nextNews--;
+  if(S.nextNews<=0){ S.nextNews=randInt(3,7); breakNews(); }
+  save(); render();
+}
+function applyEvent(ev){
+  Object.entries(ev.actual).forEach(([t,v])=>{
+    const s=st(t);
+    s.price = Math.max(0.5, s.price*(1+0.7*v/100));
+    s.hist[s.hist.length-1] = s.price;
+    const p = S.pending[t] = S.pending[t] || [];
+    for(let i=0;i<3;i++) p[i] = (p[i]||0) + 0.1*v/100;
+    if(Math.abs(v)>=1 && !s.news.includes(S.day)) s.news.push(S.day);
+  });
+}
+function breakNews(){
+  const ev = generate();
+  S.feed.unshift(ev); if(S.feed.length>60) S.feed.pop();
+  S.live = ev.id;
+  if(S.mode==='guess'){ ev.phase='guess'; startGuess(); }
+  else { applyEvent(ev); ev.phase='done'; }
+}
+function startClock(){ stopClock(); if(S.running && !guessPending()) timer=setInterval(tick, SPEEDS[S.speed]); }
+function stopClock(){ if(timer){ clearInterval(timer); timer=null; } }
+function startGuess(){
+  stopClock(); clearInterval(guessTimer); guessLeft=GUESS_SECS;
+  guessTimer=setInterval(()=>{
+    if(document.hidden) return;
+    guessLeft--; updateCountdown();
+    if(guessLeft<=0) resolveGuess(null);
+  },1000);
+}
+function resolveGuess(choice){
+  clearInterval(guessTimer);
+  const ev=liveEv(); if(!ev || ev.phase!=='guess') return;
+  applyEvent(ev); ev.phase='done'; ev.guess=choice;
+  if(choice){
+    const v=ev.actual[ev.target]; const ok=(choice==='up')===(v>0);
+    ev.correct=ok; S.score.total++;
+    if(ok){ S.score.right++; S.score.streak++; } else S.score.streak=0;
+  }
+  save(); render(); startClock();
+}
+
+/* ---------- rendering ---------- */
+function render(){ renderStrip(); renderBreaking(); renderFeed(); renderRows(); renderDetail(); renderPortfolio(); }
+
+function renderStrip(){
+  $('date').textContent = dateStr(S.day);
+  $('season').hidden = !isEarnings(S.day);
+  $('play').textContent = S.running ? 'Pause' : 'Play';
+  $('play').setAttribute('aria-pressed', String(!S.running));
+  document.querySelectorAll('[data-speed]').forEach(b=>b.setAttribute('aria-pressed', String(+b.dataset.speed===S.speed)));
+  document.querySelectorAll('[data-mode]').forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.mode===S.mode)));
+  const iv=indexVal(), ch=(iv/S.idxPrev-1)*100;
+  $('idx').textContent = iv.toFixed(1);
+  $('idxc').textContent = pct(ch); $('idxc').className = cls(ch);
+}
+
+function moveChips(ev, skip){
+  const items = Object.entries(ev.actual).filter(([t,v])=>t!==skip && Math.abs(v)>=1).sort((a,b)=>Math.abs(b[1])-Math.abs(a[1])).slice(0,5);
+  if(!items.length) return '';
+  return `<ul class="chips" aria-label="Also moved">${items.map(([t,v])=>`<li class="chip ${v>=0?'u':'d'} num">${t} ${pct(v)}</li>`).join('')}</ul>`;
+}
+function renderBreaking(){
+  const ev=liveEv();
+  const key = ev ? `${ev.id}-${ev.phase}-${S.mode}` : `none-${S.mode}`;
+  if(key===lastBreakKey) return; lastBreakKey=key;
+  const box=$('breaking');
+  if(!ev){
+    box.innerHTML = `<p class="b-meta"><span class="tag">Market open</span></p>
+      <h1 class="b-head">Welcome to Veridia, where a year passes in under an hour.</h1>
+      <p class="b-sub">You start with $10,000 of pretend money. Each game day lasts 10 seconds, and headlines will start dropping in a few game days. Watch how each one moves the stocks, and click any <button type="button" class="term" data-term="volatility">blue word</button> to learn what it means. ${S.mode==='guess'?'In Guess mode the clock stops when news breaks, and you get '+GUESS_SECS+' seconds to call the move.':'Switch to Guess mode when you’re ready to call the moves yourself.'}</p>`;
+    return;
+  }
+  const c=co(ev.target);
+  const head = `<p class="b-meta"><span class="tag">${ev.tag}</span><span>${dateStr(ev.day)}</span></p><h1 class="b-head">${renderText(ev.text, ev.id)}</h1>`;
+  if(ev.phase==='guess'){
+    box.innerHTML = head + `<p class="b-q">Which way will <strong>${c.name}</strong> (${c.t}) move?</p>
+      <div class="b-btns"><button class="big up" data-guess="up">Up</button><button class="big down" data-guess="down">Down</button><button class="big ghost" data-guess="skip">Skip</button></div>
+      <div class="b-timer"><span id="tbar" style="width:${guessLeft/GUESS_SECS*100}%"></span></div>
+      <p class="b-hint">The market reacts in <span id="secs" class="num">${guessLeft}</span> seconds. You can still trade at today’s prices until then.</p>`;
+    return;
+  }
+  const v=ev.actual[ev.target];
+  let verdict='';
+  if(ev.guess) verdict = ev.correct ? `You guessed ${ev.guess} and called it.${S.score.streak>1?` That’s ${S.score.streak} in a row.`:''}` : `You guessed ${ev.guess}. Not this time; here’s why.`;
+  else if(S.mode==='guess') verdict = 'No guess this time.';
+  const hist = ev.related ? HISTORY.find(h=>h.id===ev.related) : null;
+  box.innerHTML = head + `<p class="b-move num ${cls(v)}">${c.name} ${pct(v)}</p>
+    ${verdict?`<p class="b-verdict">${verdict}</p>`:''}
+    ${ev.surprised?`<p class="b-note">Surprise: investors had already <button type="button" class="term" data-term="priced-in" data-ev="${ev.id}">priced in</button> the good news, so the stock slipped anyway.</p>`:''}
+    <p class="b-why">${renderText(ev.why, ev.id)}</p>
+    ${moveChips(ev, ev.target)}
+    ${hist?`<a class="real" href="#history" data-jump="${hist.id}">See it in real life: ${hist.title} (${hist.year})</a>`:''}`;
+}
+function updateCountdown(){
+  const s=$('secs'), b=$('tbar');
+  if(s) s.textContent=Math.max(0,guessLeft);
+  if(b) b.style.width = Math.max(0,guessLeft/GUESS_SECS*100)+'%';
+}
+
+function renderFeed(){
+  const top=S.feed[0];
+  const key = S.feed.length + '-' + (top?top.id+top.phase:'');
+  if(key===lastFeedKey) return; lastFeedKey=key;
+  if(!S.feed.length){ $('feed').innerHTML='<li class="empty">No news yet. The first headline is on its way.</li>'; return; }
+  $('feed').innerHTML = S.feed.map(ev=>{
+    const done = ev.phase==='done';
+    const v = done ? ev.actual[ev.target] : null;
+    return `<li><span class="f-day">${dateStr(ev.day)}</span>
+      <p class="f-text">${renderText(ev.text, ev.id)}</p>
+      ${done?`<ul class="chips"><li class="chip ${v>=0?'u':'d'} num">${ev.target} ${pct(v)}</li>${ev.guess?`<li class="chip ${ev.correct?'u':'d'}">${ev.correct?'Called it':'Missed'}</li>`:''}</ul>
+      <details><summary>Why it moved</summary><p>${renderText(ev.why, ev.id)}</p></details>`:'<span class="f-day">Waiting for the market to react…</span>'}
+    </li>`;
+  }).join('');
+}
+
+function spark(hist){
+  const h=hist.slice(-30); const mn=Math.min(...h), mx=Math.max(...h), rg=(mx-mn)||1;
+  const pts=h.map((v,i)=>`${(i/(h.length-1||1)*70+1).toFixed(1)},${(22-(v-mn)/rg*20).toFixed(1)}`).join(' ');
+  const up=h[h.length-1]>=h[0];
+  return `<svg viewBox="0 0 72 24" aria-hidden="true"><polyline points="${pts}" fill="none" stroke="var(${up?'--up':'--down'})" stroke-width="1.6" stroke-linejoin="round"/></svg>`;
+}
+function buildRows(){
+  $('rows').innerHTML = COMPANIES.map(c=>`<button class="row" data-t="${c.t}" aria-pressed="false">
+    <span><span class="t">${c.t}</span><span class="n">${c.name}</span></span>
+    <span class="s"></span><span class="p num"></span><span class="c num"></span></button>`).join('');
+}
+function renderRows(){
+  document.querySelectorAll('.row').forEach(row=>{
+    const s=st(row.dataset.t), ch=(s.price/s.prev-1)*100;
+    row.setAttribute('aria-pressed', String(row.dataset.t===selected));
+    row.querySelector('.s').innerHTML = spark(s.hist);
+    row.querySelector('.p').textContent = money(s.price);
+    const cEl=row.querySelector('.c'); cEl.textContent=pct(ch); cEl.className='c num '+cls(ch);
+  });
+}
+
+const PHRASES = {rates:['interest rates rise','interest rates fall'],oil:['oil prices rise','oil prices fall'],economy:['the economy is strong','the economy weakens'],inflation:['inflation runs hot','inflation cools']};
+const STYLE_TERM = {growth:'[[growth-stock|growth stock]]',cyclical:'[[cyclical|cyclical stock]]',defensive:'[[defensive|defensive stock]]'};
+let lastDetail='';
+function renderDetail(){
+  const c=co(selected), s=st(selected);
+  if(lastDetail!==selected){
+    lastDetail=selected;
+    $('d-name').textContent=c.name;
+    $('d-sub').textContent=`${c.t}, ${c.sector}`;
+    $('d-about').textContent=c.about;
+    const rise=[], fall=[];
+    Object.entries(c.sens).forEach(([f,v])=>{ if(Math.abs(v)>=0.8){ rise.push(PHRASES[f][v>0?0:1]); fall.push(PHRASES[f][v>0?1:0]); } });
+    $('d-traits').innerHTML = `<li>Type: ${renderText(STYLE_TERM[c.style])}</li>` +
+      (rise.length ? `<li>Tends to rise when ${joinList(rise)}.</li><li>Tends to fall when ${joinList(fall)}.</li>` : `<li>Steady in most conditions; it reacts mainly to its own company news.</li>`);
+    $('msg').textContent='';
+  }
+  const ch=(s.price/s.prev-1)*100;
+  $('d-price').textContent=money(s.price);
+  $('d-chg').textContent=pct(ch)+' today'; $('d-chg').className=cls(ch);
+  // chart
+  const h=s.hist.slice(-80), n=h.length, startDay=S.day-(n-1);
+  const mn=Math.min(...h), mx=Math.max(...h), rg=(mx-mn)||1;
+  const x=i=>n>1?i/(n-1)*396+2:200, y=v=>142-(v-mn)/rg*134;
+  const pts=h.map((v,i)=>`${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+  const marks=s.news.filter(d=>d>=startDay).map(d=>{const xi=x(d-startDay).toFixed(1);return `<line x1="${xi}" x2="${xi}" y1="4" y2="146" stroke="var(--gold)" stroke-width="2" vector-effect="non-scaling-stroke" opacity=".85"/>`;}).join('');
+  const up=h[h.length-1]>=h[0];
+  $('d-chart').innerHTML = marks + `<polyline points="${pts}" fill="none" stroke="var(${up?'--up':'--down'})" stroke-width="2.5" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>`;
+  const p=S.pos[selected];
+  $('d-pos').textContent = p ? `You own ${p.qty} shares, bought at ${money(p.cost)} on average. Gain so far: ${money((s.price-p.cost)*p.qty)}.` : `You don’t own any ${c.t} yet. Cash available: ${money(S.cash)}.`;
+}
+
+function renderPortfolio(){
+  const w=worth(), ret=(w/S.start-1)*100;
+  $('p-worth').textContent=money(w);
+  $('p-ret').textContent=pct(ret); $('p-ret').className=cls(ret);
+  $('p-cash').textContent=money(S.cash);
+  $('p-guess').textContent = S.score.total ? `${S.score.right} of ${S.score.total}` : 'None yet';
+  const rows=Object.entries(S.pos);
+  $('p-table').innerHTML = rows.length
+    ? `<thead><tr><th>Stock</th><th>Shares</th><th>Value</th><th>Gain</th></tr></thead><tbody>${rows.map(([t,p])=>{const s=st(t),g=(s.price-p.cost)*p.qty;return `<tr><td>${t}</td><td>${p.qty}</td><td>${money(p.qty*s.price)}</td><td class="${cls(g)}">${money(g)}</td></tr>`;}).join('')}</tbody>`
+    : `<tbody><tr><td class="empty" style="text-align:left;border:0;white-space:normal">No stocks yet. Pick one from the list and buy a few shares.</td></tr></tbody>`;
+}
+
+/* ---------- trading ---------- */
+function trade(side){
+  const q=Math.floor(+$('qty').value), s=st(selected), c=co(selected); let msg='';
+  if(!(q>0)){ $('msg').textContent='Enter how many shares, 1 or more.'; return; }
+  if(side==='buy'){
+    const cost=q*s.price;
+    if(cost>S.cash){ $('msg').textContent=`Not enough cash. You can afford ${Math.floor(S.cash/s.price)} shares of ${c.t}.`; return; }
+    const p=S.pos[selected]||{qty:0,cost:0};
+    p.cost=(p.cost*p.qty+cost)/(p.qty+q); p.qty+=q; S.pos[selected]=p; S.cash-=cost;
+    msg=`Bought ${q} ${c.t} at ${money(s.price)}.`;
+  } else {
+    const p=S.pos[selected];
+    if(!p || p.qty<q){ $('msg').textContent=`You own ${p?p.qty:0} shares of ${c.t}.`; return; }
+    p.qty-=q; S.cash+=q*s.price; if(!p.qty) delete S.pos[selected];
+    msg=`Sold ${q} ${c.t} at ${money(s.price)}.`;
+  }
+  save(); lastDetail=''; renderDetail(); renderPortfolio();
+  $('msg').textContent = msg;
+}
+
+/* ---------- terms + history pages ---------- */
+function renderGlossary(){
+  const q=$('tsearch').value.trim().toLowerCase();
+  const keys=Object.keys(TERMS).sort((a,b)=>TERMS[a].n.localeCompare(TERMS[b].n))
+    .filter(k=>!q || TERMS[k].n.toLowerCase().includes(q) || TERMS[k].d.toLowerCase().includes(q));
+  $('glossary').innerHTML = keys.length ? keys.map(k=>{const t=TERMS[k];return `<article class="gterm" id="term-${k}"><h3>${t.n}</h3><p>${t.d}</p><p class="ex">Example: ${t.e}</p>${S.seen.includes(k)?'<span class="seen">You’ve looked this up in the game</span>':''}</article>`;}).join('')
+    : `<p class="empty">No terms match “${q.replace(/</g,'&lt;')}”. Try a shorter word.</p>`;
+}
+function renderHistory(){
+  $('hist').innerHTML = HISTORY.map(h=>`<article class="hcard" id="h-${h.id}">
+    <div class="hyear num">${h.year}</div>
+    <div><h3>${h.title}</h3>
+      <p><strong>What happened.</strong> ${renderText(h.what)}</p>
+      <p><strong>What moved.</strong> ${renderText(h.moved)}</p>
+      <p><strong>The lesson.</strong> ${renderText(h.lesson)}</p>
+      <p><strong>In the game.</strong> ${h.game}</p></div></article>`).join('');
+}
+
+/* ---------- term dialog ---------- */
+function openTerm(k, evId){
+  const t=TERMS[k]; if(!t) return;
+  if(!S.seen.includes(k)){ S.seen.push(k); save(); }
+  const ev = evId ? S.feed.find(e=>e.id===+evId) : null;
+  $('dlg-body').innerHTML = `<h3>${t.n}</h3><p>${t.d}</p><p style="color:var(--muted)">Example: ${t.e}</p>
+    ${ev?`<div class="ctx"><strong>In this headline</strong>${renderText(ev.why, ev.id)}</div>`:''}
+    <div class="dlg-foot"><a href="#terms" data-close>See all key terms</a><button class="btn plain" data-close>Close</button></div>`;
+  const d=$('dlg'); if(!d.open) d.showModal();
+}
+
+/* ---------- routing ---------- */
+let jumpTo=null;
+function route(){
+  const v=['market','terms','history'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'market';
+  ['market','terms','history'].forEach(n=>$('view-'+n).hidden = n!==v);
+  document.querySelectorAll('.tabs a').forEach(a=>{ if(a.dataset.view===v) a.setAttribute('aria-current','page'); else a.removeAttribute('aria-current'); });
+  if(v==='terms') renderGlossary();
+  if(v==='history'){
+    renderHistory();
+    if(jumpTo){ const el=$('h-'+jumpTo); jumpTo=null; if(el){ el.scrollIntoView({block:'start'}); el.classList.add('flash'); setTimeout(()=>el.classList.remove('flash'),2200);} }
+    else window.scrollTo(0,0);
+  } else if(v==='terms') window.scrollTo(0,0);
+}
+
+/* ---------- events ---------- */
+document.addEventListener('click', e=>{
+  const term=e.target.closest('.term'); if(term){ openTerm(term.dataset.term, term.dataset.ev); return; }
+  const close=e.target.closest('[data-close]'); if(close){ $('dlg').close(); return; }
+  const jump=e.target.closest('[data-jump]'); if(jump){ jumpTo=jump.dataset.jump; if(location.hash==='#history'){ e.preventDefault(); route(); } return; }
+  const g=e.target.closest('[data-guess]'); if(g){ resolveGuess(g.dataset.guess==='skip'?null:g.dataset.guess); return; }
+  const row=e.target.closest('.row'); if(row){ selected=row.dataset.t; renderRows(); renderDetail(); return; }
+  const sp=e.target.closest('[data-speed]'); if(sp){ S.speed=+sp.dataset.speed; save(); renderStrip(); startClock(); return; }
+  const md=e.target.closest('[data-mode]'); if(md){
+    S.mode=md.dataset.mode;
+    if(S.mode==='learn' && guessPending()) resolveGuess(null);
+    save(); lastBreakKey=''; render(); return; }
+});
+$('dlg').addEventListener('click', e=>{ if(e.target===$('dlg')) $('dlg').close(); });
+$('play').addEventListener('click', ()=>{ S.running=!S.running; save(); renderStrip(); if(S.running) startClock(); else stopClock(); });
+$('buy').addEventListener('click', ()=>trade('buy'));
+$('sell').addEventListener('click', ()=>trade('sell'));
+$('tsearch').addEventListener('input', renderGlossary);
+$('reset').addEventListener('click', ()=>{
+  if(!confirm('Start over with $10,000 and fresh prices? Your current game will be erased.')) return;
+  clearInterval(guessTimer); stopClock(); S=newState(); save(); lastBreakKey=''; lastFeedKey=''; lastDetail=''; render(); startClock();
+});
+window.addEventListener('hashchange', route);
+document.addEventListener('visibilitychange', ()=>{ if(document.hidden) stopClock(); else startClock(); });
+
+/* ---------- start ---------- */
+S=load();
+buildRows();
+render();
+route();
+if(guessPending()){ startGuess(); lastBreakKey=''; renderBreaking(); } else startClock();
+</script>
+</body>
+</html>
