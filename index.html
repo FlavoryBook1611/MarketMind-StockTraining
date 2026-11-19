@@ -6,60 +6,47 @@
 <title>MarketMind: The Veridia Exchange</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#E9EFF6; --surface:#FFFFFF; --surface2:#F3F6FA; --ink:#17253A; --muted:#566880; --line:#D2DBE6;
-  --up:#18794C; --upbg:#E2F4EA; --down:#BF372E; --downbg:#FBE6E3;
-  --term:#1C4BD0; --termbg:#E2EAFF; --gold:#DD951F; --goldsoft:#FFF2DA;
-  color-scheme: light;
-}
-@media (prefers-color-scheme: dark){
-  :root:not([data-theme="light"]){
-    --bg:#0F1724; --surface:#172234; --surface2:#1D2A3F; --ink:#E6ECF5; --muted:#9BAAC0; --line:#2B3A52;
-    --up:#4FC58D; --upbg:#173528; --down:#F27C71; --downbg:#3D1F1D;
-    --term:#8FAEFF; --termbg:#22345E; --gold:#F2B657; --goldsoft:#3A2D14;
-    color-scheme: dark;
-  }
-}
-:root[data-theme="dark"]{
-  --bg:#0F1724; --surface:#172234; --surface2:#1D2A3F; --ink:#E6ECF5; --muted:#9BAAC0; --line:#2B3A52;
+  --bg:#0F1724; --bg2:#22385C; --surface:#172234; --surface2:#1D2A3F; --ink:#E6ECF5; --muted:#9BAAC0; --line:#2B3A52;
   --up:#4FC58D; --upbg:#173528; --down:#F27C71; --downbg:#3D1F1D;
-  --term:#8FAEFF; --termbg:#22345E; --gold:#F2B657; --goldsoft:#3A2D14;
+  --term:#8FAEFF; --termbg:#22345E; --gold:#F2B657; --goldhi:#FFD98A; --golddeep:#DD951F; --goldsoft:#3A2D14; --onaccent:#0F1724;
   color-scheme: dark;
 }
 :root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);}
 html{scroll-padding-top:calc(env(safe-area-inset-top,0px) + 70px);}
 *,*::before,*::after{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;}
+body{margin:0;background:var(--bg) radial-gradient(ellipse 120% 70% at 50% 0%, var(--bg2), var(--bg) 70%) no-repeat;min-height:100vh;color:var(--ink);font:16px/1.5 "Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface);}
-h1,h2,h3{font-family:"Bricolage Grotesque","Atkinson Hyperlegible",system-ui,sans-serif;margin:0;line-height:1.15}
+h1,h2,h3{font-family:"Inter",system-ui,sans-serif;margin:0;line-height:1.15;letter-spacing:-.015em}
 button,input{font:inherit;color:inherit}
 :focus-visible{outline:3px solid var(--term);outline-offset:2px;border-radius:4px}
 .num{font-variant-numeric:tabular-nums}
 .wrap{max-width:1320px;margin:0 auto;padding:0 16px}
 
 /* top bar */
-.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:rgba(15,23,36,.88);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
 .top .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:60px;flex-wrap:wrap;padding-top:6px;padding-bottom:6px}
-.brand{display:flex;align-items:baseline;gap:10px}
+.brand{display:flex;align-items:center;gap:10px}
+.brand svg{width:34px;height:34px;flex:none}
 .brand h1{font-size:1.45rem;font-weight:800;letter-spacing:-.02em}
-.brand span{color:var(--muted);font-size:.9rem}
+.brand span{color:var(--gold);font-size:.9rem;font-weight:600}
 .tabs{display:flex;gap:4px}
 .tabs a{color:var(--ink);text-decoration:none;padding:8px 12px;border-radius:999px;font-weight:700;font-size:.95rem}
 .tabs a:hover{background:var(--surface2)}
-.tabs a[aria-current="page"]{background:var(--ink);color:var(--surface)}
+.tabs a[aria-current="page"]{background:var(--gold);color:var(--onaccent)}
 
 /* control strip */
 .strip{display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px;margin:16px 0 12px}
 .date{font-weight:700}
-.season{background:var(--goldsoft);color:var(--ink);border-radius:999px;padding:2px 10px;font-size:.85rem}
+.season{background:var(--golddeep);color:var(--onaccent);font-weight:700;border-radius:999px;padding:2px 10px;font-size:.85rem}
 .ctrl{display:flex;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:3px}
 .ctrl button{border:0;background:transparent;padding:6px 11px;border-radius:7px;cursor:pointer;font-weight:700;font-size:.9rem}
-.ctrl button[aria-pressed="true"]{background:var(--ink);color:var(--surface)}
+.ctrl button[aria-pressed="true"]{background:var(--gold);color:var(--onaccent)}
 .index{margin-left:auto;display:flex;gap:8px;align-items:baseline}
 .gear{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:6px 12px;font-weight:700;font-size:.9rem;cursor:pointer}
-.gear[aria-expanded="true"]{background:var(--ink);color:var(--surface)}
+.gear[aria-expanded="true"]{background:var(--gold);color:var(--onaccent)}
 .settings{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin:0 0 14px;display:flex;flex-wrap:wrap;gap:12px 28px;align-items:flex-start}
 .setting{display:grid;gap:6px}
 .setting>span{font-weight:700;font-size:.95rem}
@@ -69,23 +56,23 @@ button,input{font:inherit;color:inherit}
 .up-t{color:var(--up)} .down-t{color:var(--down)}
 
 /* breaking card */
-.breaking{background:var(--surface);border:1px solid var(--line);border-left:10px solid var(--gold);border-radius:16px;padding:20px 22px 22px;margin-bottom:16px}
+.breaking{background:linear-gradient(180deg,#1B2940,#141F31);border:1px solid var(--line);border-left:10px solid var(--golddeep);border-radius:16px;padding:20px 22px 22px;margin-bottom:16px}
 .b-meta{display:flex;gap:10px;align-items:center;color:var(--muted);font-size:.9rem;margin:0 0 8px}
-.tag{background:var(--surface2);border:1px solid var(--line);border-radius:999px;padding:1px 10px;color:var(--ink);font-size:.82rem;font-weight:700}
+.tag{background:var(--golddeep);border-radius:999px;padding:2px 12px;color:var(--onaccent);font-size:.78rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase}
 .b-head{font-size:clamp(1.35rem,1rem + 1.5vw,2.15rem);font-weight:800;letter-spacing:-.015em;max-width:30ch;line-height:1.18}
 .b-sub{color:var(--muted);margin:10px 0 0;max-width:62ch}
-.b-q{margin:18px 0 10px;font-size:1.1rem}
+.b-q{margin:18px 0 10px;font-size:1.15rem;color:var(--goldhi);font-weight:700}
 .b-btns{display:flex;gap:8px;flex-wrap:wrap}
 .big{border:2px solid transparent;border-radius:12px;padding:10px 22px;font-weight:800;font-size:1.05rem;cursor:pointer}
-.big.up{background:var(--up);color:#fff}
-.big.down{background:var(--down);color:#fff}
+.big.up{background:var(--up);color:var(--onaccent)}
+.big.down{background:var(--down);color:var(--onaccent)}
 .big.ghost{background:transparent;border-color:var(--line)}
 .b-btns .qty{display:flex;align-items:center;gap:6px;font-weight:700}
 .b-btns .qty input{width:80px;padding:9px 10px;border:1px solid var(--line);border-radius:10px;background:var(--surface2)}
 .b-timer{height:8px;background:var(--surface2);border-radius:99px;margin:16px 0 6px;overflow:hidden;max-width:520px}
 .b-timer span{display:block;height:100%;background:var(--gold);border-radius:99px;transition:width 1s linear}
 .b-hint{color:var(--muted);font-size:.92rem;margin:0}
-.b-move{font-family:"Bricolage Grotesque",system-ui,sans-serif;font-weight:800;font-size:1.5rem;margin:16px 0 2px}
+.b-move{font-family:"Inter",system-ui,sans-serif;font-weight:800;font-size:1.5rem;margin:16px 0 2px}
 .b-verdict{margin:0 0 10px;font-weight:700}
 .b-why{max-width:68ch;margin:8px 0}
 .b-note{background:var(--goldsoft);border-radius:10px;padding:8px 12px;max-width:68ch}
@@ -121,7 +108,7 @@ button,input{font:inherit;color:inherit}
 .board{display:grid;gap:16px;grid-template-columns:minmax(0,1fr)}
 @media (min-width:760px){.board{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.col3{grid-column:1/-1}}
 @media (min-width:1180px){.board{grid-template-columns:minmax(0,1.05fr) minmax(0,.9fr) minmax(0,1.1fr)}.col3{grid-column:auto}}
-.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:18px}
 .panel h2{font-size:1.15rem;font-weight:800;margin-bottom:10px}
 .col3{display:grid;gap:16px;align-content:start}
 
@@ -139,7 +126,7 @@ button,input{font:inherit;color:inherit}
 .rows{display:grid;gap:2px}
 .row{display:grid;grid-template-columns:minmax(0,1fr) 72px 76px 64px;align-items:center;gap:8px;width:100%;text-align:left;background:transparent;border:0;border-left:4px solid transparent;border-radius:8px;padding:8px 8px 8px 10px;cursor:pointer}
 .row:hover{background:var(--surface2)}
-.row[aria-pressed="true"]{background:var(--surface2);border-left-color:var(--ink)}
+.row[aria-pressed="true"]{background:var(--surface2);border-left-color:var(--gold)}
 .row .t{font-weight:800;font-size:.95rem}
 .row .n{display:block;color:var(--muted);font-size:.82rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .row .p{text-align:right;font-weight:700}
@@ -161,8 +148,8 @@ button,input{font:inherit;color:inherit}
 .trade label{font-weight:700}
 .trade input{width:90px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface2)}
 .btn{border:0;border-radius:8px;padding:9px 16px;font-weight:800;cursor:pointer}
-.btn.buy{background:var(--up);color:#fff}
-.btn.sell{background:var(--down);color:#fff}
+.btn.buy{background:var(--up);color:var(--onaccent)}
+.btn.sell{background:var(--down);color:var(--onaccent)}
 .btn.plain{background:var(--surface2);border:1px solid var(--line)}
 .msg{min-height:1.4em;margin:8px 0 0;font-size:.92rem}
 
@@ -182,15 +169,15 @@ th{color:var(--muted);font-weight:700;border-top:0}
 .lede{color:var(--muted);max-width:62ch;margin:8px 0 18px}
 .search{width:100%;max-width:420px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);margin-bottom:16px}
 .glossary{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(280px,1fr))}
-.gterm{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.gterm{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px 16px}
 .gterm h3{font-size:1.1rem;font-weight:800;color:var(--term)}
 .gterm p{margin:6px 0 0}
 .gterm .ex{color:var(--muted);font-size:.93rem}
 .seen{display:inline-block;margin-top:8px;font-size:.82rem;font-weight:700;color:var(--up)}
 .hist{display:grid;gap:16px}
-.hcard{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px 20px;display:grid;gap:4px 24px;grid-template-columns:minmax(0,1fr)}
+.hcard{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:18px 20px;display:grid;gap:4px 24px;grid-template-columns:minmax(0,1fr)}
 @media (min-width:760px){.hcard{grid-template-columns:150px minmax(0,1fr)}}
-.hyear{font-family:"Bricolage Grotesque",system-ui,sans-serif;font-weight:800;font-size:1.9rem;line-height:1;color:var(--gold)}
+.hyear{font-family:"Inter",system-ui,sans-serif;font-weight:800;font-size:1.9rem;line-height:1;color:var(--gold)}
 .hcard h3{font-size:1.3rem;font-weight:800;margin-bottom:6px}
 .hcard p{margin:6px 0;max-width:70ch}
 .hcard.flash{outline:3px solid var(--gold);outline-offset:3px}
@@ -214,7 +201,7 @@ footer{color:var(--muted);font-size:.85rem;padding:24px 0 32px;max-width:70ch}
 <body>
 <header class="top">
   <div class="wrap">
-    <div class="brand"><h1>MarketMind</h1><span>The Veridia Exchange</span></div>
+    <div class="brand"><svg viewBox="200 180 700 640" aria-hidden="true"><defs><linearGradient id="lg" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#F2B657"/><stop offset="1" stop-color="#FFD98A"/></linearGradient></defs><polyline points="270,770 385,390 540,620 680,430 790,300" fill="none" stroke="url(#lg)" stroke-width="80" stroke-linecap="round" stroke-linejoin="round"/><polygon points="860,215 845,375 700,268" fill="url(#lg)" stroke="url(#lg)" stroke-width="20" stroke-linejoin="round"/></svg><h1>MarketMind</h1><span>The Veridia Exchange</span></div>
     <nav class="tabs" aria-label="Sections">
       <a href="#market" data-view="market">Market</a>
       <a href="#terms" data-view="terms">Key terms</a>
