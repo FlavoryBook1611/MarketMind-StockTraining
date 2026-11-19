@@ -89,6 +89,14 @@ button,input{font:inherit;color:inherit}
 .b-verdict{margin:0 0 10px;font-weight:700}
 .b-why{max-width:68ch;margin:8px 0}
 .b-note{background:var(--goldsoft);border-radius:10px;padding:8px 12px;max-width:68ch}
+.coach{background:var(--surface2);border-left:6px solid var(--gold);border-radius:10px;padding:12px 16px;margin:14px 0;max-width:72ch}
+.coach.good{border-left-color:var(--up)} .coach.bad{border-left-color:var(--down)}
+.coach h3{font-size:1.08rem;font-weight:800;margin:0 0 4px}
+.coach p{margin:4px 0}
+.coach .lbl{font-size:.78rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.watch{border-left:6px solid var(--term);background:var(--termbg);border-radius:10px;padding:10px 14px;margin:12px 0;max-width:72ch}
+.watch strong{color:var(--term)}
+.later{font-weight:700;margin-top:8px!important}
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 0;padding:0;list-style:none}
 .chip{border-radius:8px;padding:2px 9px;font-size:.88rem;font-weight:700}
 .chip.u{background:var(--upbg);color:var(--up)} .chip.d{background:var(--downbg);color:var(--down)}
@@ -532,7 +540,7 @@ function generate(){
     if(surprised && t===target) a = -Math.sign(v)*rand(0.8,2.5);
     actual[t] = Math.round(a*100)/100;
   });
-  return {id:++S.uid, day:S.day, tag:raw.tag, related:raw.related||null, text:raw.text, why:raw.why, target, actual, surprised, phase:'new', guess:null, correct:null};
+  return {id:++S.uid, kind:chosen.k, day:S.day, tag:raw.tag, related:raw.related||null, text:raw.text, why:raw.why, target, actual, surprised, phase:'new', guess:null, correct:null};
 }
 
 /* ---------- state ---------- */
@@ -570,6 +578,11 @@ function tick(){
     s.price = Math.max(0.5, s.price*(1+r));
     s.hist.push(s.price); if(s.hist.length>500) s.hist.shift();
     s.news = s.news.filter(d=>d>S.day-500);
+  });
+  S.feed.forEach(ev=>{
+    if(ev.checkDay!=null && ev.after==null && S.day>=ev.checkDay){
+      ev.after=(st(ev.target).price/ev.px-1)*100; lastFeedKey=''; if(ev.id===S.live) lastBreakKey='';
+    }
   });
   S.nextNews--;
   if(S.nextNews<=0){ S.nextNews=randInt(3,7); breakNews(); }
@@ -622,6 +635,7 @@ function resolveGuess(act){
   clearInterval(guessTimer);
   const ev=liveEv(); if(!ev || ev.phase!=='guess') return;
   act = act || 'stand';
+  markDecision(ev,'before');
   ev.action=act; ev.tradeMsg = act==='stand' ? '' : newsTrade(ev.target, act);
   applyEvent(ev); ev.phase='done';
   const choice = act==='buy' ? 'up' : act==='sell' ? 'down' : null;
@@ -635,9 +649,91 @@ function resolveGuess(act){
 }
 function resolveDecide(act){
   const ev=liveEv(); if(!ev || ev.phase!=='decide') return;
+  markDecision(ev,'after');
   ev.action=act; ev.tradeMsg = act==='stand' ? '' : newsTrade(ev.target, act);
   ev.phase='done';
   save(); lastDetail=''; render(); startClock();
+}
+function markDecision(ev, when){
+  const p=S.pos[ev.target];
+  ev.when=when; ev.owned=p?p.qty:0; ev.px=st(ev.target).price; ev.checkDay=S.day+5; ev.after=null;
+}
+const WATCH = {
+  rateHike:'Rate news: ask who borrows and who lends. Lenders like banks can gain, while companies whose customers need loans (homes, cars) and fast-growing [[growth-stock|growth stocks]] usually suffer.',
+  rateCut:'Rate cuts: cheaper loans help homebuilders, carmakers and [[growth-stock|growth stocks]] most. Banks can lag because they earn less on each loan.',
+  oilSpike:'Oil news: split companies into those that sell oil and those that burn it. Producers gain; airlines and shippers pay more for fuel.',
+  oilDrop:'Falling oil: flip the oil-spike logic. Producers earn less, while airlines and other big fuel buyers save money.',
+  strongJobs:'Jobs news: strong hiring helps [[cyclical|cyclical]] companies most. But a very hot report can also raise fears of [[inflation|inflation]] and more rate hikes.',
+  weakJobs:'A weakening economy: [[defensive|defensive]] companies (groceries, medicine, power) tend to hold up, while [[cyclical|cyclical]] ones fall hardest.',
+  hotInflation:'Inflation numbers matter because they hint at what the [[central-bank|central bank]] does next. Hot inflation usually means higher [[interest-rates|interest rates]] are coming.',
+  coolInflation:'Cooling inflation means rate hikes may stop, which tends to lift rate-sensitive stocks like homebuilders and [[growth-stock|growth stocks]].',
+  travelScare:'Health scares: think about what people stop doing (traveling) and what they do more (streaming, stocking up). The same news can push stocks in opposite directions.',
+  chipSqueeze:'Shortages: whoever owns the scarce thing gains pricing power, and whoever needs it gets squeezed.',
+  beat:'Earnings: what matters is the result compared with [[estimates|estimates]], and especially the [[guidance|guidance]] for what comes next. Good news everyone expected may already be [[priced-in|priced in]].',
+  miss:'Earnings misses: check whether it was a one-time problem or a sign of slowing demand. A miss plus a weak forecast is far worse than a miss alone.',
+  guideUp:'Raised guidance is about the future, which is what stock prices care about most. It often carries more weight than last quarter’s numbers.',
+  guideDown:'Guidance cuts tend to hurt longer than one bad quarter, because they lower the whole outlook. Be careful buying the dip right after one.',
+  ceo:'Leadership changes: a sudden exit with no successor is a red flag. A planned handoff to a respected leader is much less worrying.',
+  probe:'Investigations: the first drop reflects uncertainty. Ask whether a likely fine would be small or large compared with the company’s size.',
+  launch:'Product news: moves are usually modest, because one product rarely changes a whole company unless it’s the main business.',
+  buyback:'Buybacks signal confidence, but they rarely move a stock much. They matter more to long-term owners than quick traders.',
+  dividend:'Dividend raises signal confidence and reward owners, but the price reaction is usually small.',
+  upgrade:'Analyst upgrades cause small, short-lived bumps. Treat one rating as a nudge, not the whole story.',
+  downgrade:'Analyst downgrades cause small, short-lived dips. Check whether the reasons are new or already known.',
+  deal:'Buyouts: the company being bought jumps toward the offer price and usually stops just below it, so there’s little upside left after the jump. The buyer often slips.',
+  approval:'Drug approvals and trials are all-or-nothing events. Moves are huge, so only risk an amount you’re comfortable losing.',
+  trialFail:'Drug stocks can crash on a single trial result. Spreading your money across several stocks protects you from one bad surprise.'
+};
+function coach(ev){
+  if(!ev.action) return null;
+  const c=co(ev.target), v=ev.actual[ev.target], up=v>0, big=Math.abs(v)>=2.5, owned=ev.owned>0, a=ev.action, m=pct(v);
+  if(ev.when==='before'){
+    if(a==='buy') return up
+      ? {g:'good',t:'Good buy',b:`You got in before the market reacted, so you rode the ${m} move. Reading a headline correctly before everyone else is exactly how news trading pays off.`}
+      : {g:'bad',t:'Costly buy',b:`${c.t} moved ${m} after you bought. ${ev.surprised?'The news sounded good, but investors already expected it, so there was no one left to push the price higher.':'Before buying, ask who the headline hurts, not just who it might help.'}`};
+    if(a==='sell'){
+      if(!owned) return up
+        ? {g:'bad',t:'Wrong prediction',b:`You didn’t own ${c.t}, so selling was a bet that it would fall, but it moved ${m}. In real markets, betting on a drop without owning shares is called short selling, and it’s riskier than buying.`}
+        : {g:'good',t:'Right prediction',b:`You predicted ${c.t} would fall, and it moved ${m}. You didn’t own shares, so no money changed hands, but your read of the headline was correct.`};
+      return up
+        ? {g:'bad',t:'Sold too soon',b:`You gave up a ${m} gain on shares you owned. Selling makes sense when news hurts a company’s future, not just because news arrived.`}
+        : {g:'good',t:'Good sell',b:`You got out before a ${m} drop and protected your money. Selling first works best when the news clearly damages the business.`};
+    }
+    if(!big) return {g:'good',t:'Smart stand',b:`${c.t} only moved ${m}. Small moves like this are mostly noise, and trading on them rarely pays. Not every headline needs action.`};
+    if(up) return owned
+      ? {g:'good',t:'Holding paid off',b:`You kept your ${c.t} shares and they gained ${m}. When you already own a stock and the news is good, holding is a fine choice.`}
+      : {g:'bad',t:'Missed opportunity',b:`This was a strong signal, and ${c.t} jumped ${m}. Standing is safe, but when a headline clearly helps a company, it can be worth acting.`};
+    return owned
+      ? {g:'bad',t:'Took the hit',b:`Your ${c.t} shares fell ${m}. When news clearly hurts a company you own, selling before the reaction can protect you.`}
+      : {g:'good',t:'Safe stand',b:`Staying out kept you away from a ${m} drop. When you’re unsure, not trading is a perfectly good choice.`};
+  }
+  // decided after the market already reacted
+  if(a==='stand') return {g:'good',t:'Patient stand',b:`Once the market reacts, the price already reflects the news. Standing still is often the smartest move after a headline has hit.`};
+  if(a==='buy') return up
+    ? {g:'neutral',t:'Chasing the jump',b:`You bought after ${c.t} already rose ${m}, so you paid the new, higher price. Strong news sometimes keeps drifting the same way for a few days, but most of the reaction is usually over.`}
+    : {g:'neutral',t:'Buying the dip',b:`${c.t} just fell ${m}, so you bought it cheaper. That works when the company is still healthy and investors overreacted. It backfires when the news damages the business for a long time.`};
+  if(!owned) return {g:'neutral',t:'Prediction only',b:`You don’t own ${c.t}, so this sell was a prediction that it will keep ${up?'giving back its gain':'falling'} from here.`};
+  return up
+    ? {g:'neutral',t:'Taking profit',b:`Selling after a ${m} jump locks in your gain. You might miss more upside, but money you’ve banked can’t be lost.`}
+    : {g:'neutral',t:'Selling after the drop',b:`Selling now locks in the lower price. That’s right if the news changes the company’s long-term story; if it’s a one-time scare, you may have sold near the bottom.`};
+}
+function laterLine(ev){
+  if(ev.after==null) return ev.action ? `<p class="d-sub">We’ll check back in 5 game days to see how this choice played out.</p>` : '';
+  const a=ev.after, t=ev.target, owned=ev.owned>0;
+  let msg;
+  if(ev.action==='buy') msg = a>=0 ? `the buy is working.` : `your buy is behind for now.`;
+  else if(ev.action==='sell') msg = owned ? (a<0 ? `selling saved you money.` : `the stock kept climbing after you sold.`) : (a<0 ? `your prediction held up.` : `your prediction didn’t hold up.`);
+  else msg = `that’s how much you ${a>=0?'missed by standing':'avoided by standing'}${owned?' (on top of what your shares did)':''}.`;
+  if(ev.action==='stand' && owned) msg = a>=0 ? `your shares gained while you held.` : `your shares lost value while you held.`;
+  return `<p class="later num ${cls(a)}">5 game days later, ${t} is ${pct(a)} from when you decided: ${msg}</p>`;
+}
+function coachBox(ev){
+  const k=coach(ev); if(!k) return '';
+  return `<div class="coach ${k.g}"><span class="lbl">Coach</span><h3>${k.t}</h3><p>${renderText(k.b, ev.id)}</p>${laterLine(ev)}</div>`;
+}
+function watchBox(ev, before){
+  const w=WATCH[ev.kind]; if(!w) return '';
+  return `<div class="watch"><strong>${before?'Before you decide':'What to watch for'}:</strong> ${renderText(w, ev.id)}</div>`;
 }
 function decidePanel(ev){
   const c=co(ev.target), s=st(ev.target), p=S.pos[ev.target];
@@ -697,8 +793,9 @@ function renderBreaking(){
     ${ev.surprised?`<p class="b-note">Surprise: investors had already <button type="button" class="term" data-term="priced-in" data-ev="${ev.id}">priced in</button> the good news, so the stock slipped anyway.</p>`:''}
     <p class="b-why">${renderText(ev.why, ev.id)}</p>
     ${moveChips(ev, ev.target)}
+    ${ev.phase==='done' ? coachBox(ev) + watchBox(ev,false) : ''}
     ${hist?`<a class="real" href="#history" data-jump="${hist.id}">See it in real life: ${hist.title} (${hist.year})</a>`:''}
-    ${ev.phase==='decide' ? decidePanel(ev) + '<p class="b-hint">The game is paused until you choose.</p>' : ''}`;
+    ${ev.phase==='decide' ? watchBox(ev,true) + decidePanel(ev) + '<p class="b-hint">The game is paused until you choose.</p>' : ''}`;
 }
 function updateCountdown(){
   const s=$('secs'), b=$('tbar');
@@ -717,7 +814,7 @@ function renderFeed(){
     return `<li><span class="f-day">${dateStr(ev.day)}</span>
       <p class="f-text">${renderText(ev.text, ev.id)}</p>
       ${done?`<ul class="chips"><li class="chip ${v>=0?'u':'d'} num">${ev.target} ${pct(v)}</li>${ev.guess?`<li class="chip ${ev.correct?'u':'d'}">${ev.correct?'Called it':'Missed'}</li>`:''}</ul>
-      <details><summary>Why it moved</summary><p>${renderText(ev.why, ev.id)}</p></details>`:'<span class="f-day">Waiting for the market to react…</span>'}
+      <details><summary>Why it moved${ev.action?' and how you did':''}</summary><p>${renderText(ev.why, ev.id)}</p>${ev.phase==='done'?coachBox(ev)+watchBox(ev,false):''}</details>`:'<span class="f-day">Waiting for the market to react…</span>'}
     </li>`;
   }).join('');
 }
