@@ -94,6 +94,17 @@ button,input{font:inherit;color:inherit}
 .coach h3{font-size:1.08rem;font-weight:800;margin:0 0 4px}
 .coach p{margin:4px 0}
 .coach .lbl{font-size:.78rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.story{max-width:72ch;margin:12px 0 0}
+.plain{font-size:1.05rem;max-width:68ch;margin:10px 0 0}
+.plain b{font-size:.78rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-right:6px}
+.clues{background:var(--surface2);border:1px solid var(--line);border-radius:12px;padding:12px 16px;margin:14px 0 0;max-width:72ch}
+.clues h3{font-size:.8rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:0 0 8px;font-weight:800}
+.clues dl{display:grid;grid-template-columns:minmax(110px,max-content) minmax(0,1fr);gap:6px 16px;margin:0}
+.clues dt{font-weight:700}
+.clues dd{margin:0}
+.clues ul{margin:10px 0 0;padding-left:20px}
+.clues li{margin:3px 0}
+@media (max-width:520px){.clues dl{grid-template-columns:minmax(0,1fr)}.clues dd{margin-bottom:6px}}
 .watch{border-left:6px solid var(--term);background:var(--termbg);border-radius:10px;padding:10px 14px;margin:12px 0;max-width:72ch}
 .watch strong{color:var(--term)}
 .later{font-weight:700;margin-top:8px!important}
@@ -346,6 +357,8 @@ const TERMS = {
   'ceo':{n:'CEO',d:'Chief executive officer, the person who runs a company day to day.',e:'A sudden CEO exit worries investors because they don’t know who’s steering, or why the old boss left.'},
   'drug-approval':{n:'Drug approval',d:'Permission from health regulators to sell a new medicine. Approval can unlock years of sales.',e:'One approved drug can be worth billions to a drugmaker.'},
   'clinical-trial':{n:'Clinical trial',d:'A test of a new medicine on patients to see whether it’s safe and works. Late-stage trials are the final hurdle.',e:'A failed late-stage trial can wipe out years of work in one day.'},
+  'eps':{n:'Earnings per share (EPS)',d:'A company’s profit divided by its number of shares. It lets you compare profit results with what experts expected, one share at a time.',e:'$2 billion of profit spread over 1 billion shares is $2.00 per share.'},
+  'price-target':{n:'Price target',d:'The price an analyst thinks a stock will reach in about a year. Comparing it with today’s price shows how much upside or downside they expect.',e:'A $60 target on a $50 stock means the analyst expects about 20% upside.'},
   'priced-in':{n:'Priced in',d:'When investors already expected some news, so the stock barely moves, or even falls, when it arrives.',e:'Traders sum it up as “buy the rumor, sell the news.”'},
   'defensive':{n:'Defensive stock',d:'A company whose sales stay steady in good times and bad, like grocers, drugmakers and power utilities.',e:'Defensive stocks usually fall less when the economy weakens, and rise less when it booms.'},
   'cyclical':{n:'Cyclical stock',d:'A company whose sales rise and fall with the economy, like airlines, banks, homebuilders and steelmakers.',e:'People take more flights and buy more houses when times are good.'},
@@ -455,71 +468,214 @@ const MACRO = [
 ];
 
 const growthRel = c => c.style==='growth' ? 'dotcom2000' : null;
+const REASONS = {
+  LMC:{good:['orders for AI data-center chips are piling up faster than expected','its newest chip is winning customers away from bigger rivals'],bad:['phone makers are ordering fewer chips as phone sales slow','a rival’s cheaper chip is taking market share']},
+  SKH:{good:['summer bookings are running well ahead of last year','lower fuel costs are fattening the profit on every flight'],bad:['jet fuel costs are eating into profits','business travelers are cutting back on trips']},
+  GBG:{good:['shoppers are buying more of its higher-profit store brands','its delivery service is pulling in new customers'],bad:['a discount rival is opening stores in its biggest cities','rising wages for store workers are squeezing profits']},
+  NVB:{good:['higher interest rates let it earn more on every loan','loan demand from small businesses is picking up'],bad:['more borrowers are falling behind on their loan payments','customers are moving their savings to rivals that pay more interest']},
+  RDE:{good:['a new oil field is starting production ahead of schedule','it is paying down debt quickly with its strong cash flow'],bad:['several of its wells are producing less oil than expected','it is spending heavily on projects that may not pay off for years']},
+  PWP:{good:['its top-selling drug keeps gaining patients every quarter','several promising drugs are in late-stage testing'],bad:['the patent on its best-selling drug expires next year, which opens the door to cheap copies','its pipeline of new drugs looks thin']},
+  CBM:{good:['car deliveries are growing quickly','it finally earns a profit on each car it sells'],bad:['high loan rates are making its cars harder to afford','price cuts to keep sales up are shrinking profits']},
+  HBH:{good:['a shortage of homes for sale is pushing buyers toward new builds','lumber prices have fallen, cutting building costs'],bad:['high mortgage rates are scaring off first-time buyers','more buyers are canceling contracts before closing']},
+  STM:{good:['its cheaper ad plan is adding subscribers fast','fewer customers are canceling each month'],bad:['subscriber growth is stalling as rivals spend more on shows','the cost of making shows is rising faster than revenue']},
+  IWS:{good:['big government bridge and road projects are boosting steel demand','steel prices are rising'],bad:['cheap imported steel is flooding the market','car factories are ordering less steel']},
+  CNS:{good:['businesses are signing longer and bigger contracts','its new AI tools let it charge customers more'],bad:['companies are cutting software budgets to save money','new customer sign-ups are slowing']},
+  VPU:{good:['regulators approved higher electricity rates','growing data-center demand is boosting power sales'],bad:['its large debt is getting more expensive as interest rates rise','storm repair costs are running over budget']}
+};
+const FIRMS=['Coastline Capital','Harborview Research','Summit & Pine','Redwood Securities'];
+const ANALYSTS=['Dana Okafor','Marcus Lee','Priya Raman','Tom Hale','Sofia Brandt'];
+const PEOPLE=['Linda Marsh','Raj Patel','Owen Brooks','Mei Tanaka','Carlos Ruiz','Anna Kovac'];
+const px = c => st(c.t).price;
+const $n = v => '$'+v.toFixed(2);
 const CEV = [
-  {k:'beat',w:1,earn:true,tag:'Earnings',make:c=>({surprise:0.15,
-    text:`${c.name} [[earnings|earnings]] beat [[estimates|estimates]] as [[revenue|revenue]] grows ${randInt(9,24)}%`,
+  {k:'beat',w:1,earn:true,tag:'Earnings',make:c=>{
+    const est=rand(0.8,3), act=est*rand(1.06,1.2), g=randInt(9,24), why=pick(REASONS[c.t].good);
+    return {surprise:0.15,
+    text:`${c.name} [[earnings|earnings]] beat [[estimates|estimates]] as [[revenue|revenue]] grows ${g}%`,
+    plain:`${c.name} made more profit last quarter than Wall Street experts predicted.`,
+    story:`${c.name} reported [[eps|earnings per share]] of ${$n(act)} for the quarter, above the ${$n(est)} that [[analyst|analysts]] expected. [[revenue|Revenue]] rose ${g}% from a year ago. Management said ${why}, and it kept its forecast for the rest of the year.`,
+    clues:[['Profit per share',`${$n(act)} vs ${$n(est)} expected (${Math.round((act/est-1)*100)}% better)`],['Sales growth',`+${g}% vs last year`],['Main driver',why],['Forecast','Unchanged']],
+    ask:['How big was the beat? A few cents is less exciting than a big jump.','Did investors already expect a great quarter?'],
     why:`${c.name} made more profit than experts predicted. Stocks move on the gap between results and [[estimates|expectations]], so a clear beat usually sends the price up.`,
-    eff:{[c.t]:rand(3,7)}})},
-  {k:'miss',w:1,earn:true,tag:'Earnings',make:c=>({related:growthRel(c),
-    text:`${c.name} [[earnings|earnings]] miss [[estimates|estimates]] as [[revenue|revenue]] falls ${randInt(3,12)}%`,
+    eff:{[c.t]:rand(3,7)}};}},
+  {k:'miss',w:1,earn:true,tag:'Earnings',make:c=>{
+    const est=rand(0.8,3), act=est*rand(0.75,0.92), g=randInt(3,12), why=pick(REASONS[c.t].bad);
+    return {related:growthRel(c),
+    text:`${c.name} [[earnings|earnings]] miss [[estimates|estimates]] as [[revenue|revenue]] falls ${g}%`,
+    plain:`${c.name} made less profit last quarter than experts predicted, and its sales shrank.`,
+    story:`${c.name} earned ${$n(act)} per share, short of the ${$n(est)} [[analyst|analysts]] expected. [[revenue|Revenue]] fell ${g}% from a year ago. The company blamed the shortfall on the fact that ${why}.`,
+    clues:[['Profit per share',`${$n(act)} vs ${$n(est)} expected (${Math.round((1-act/est)*100)}% worse)`],['Sales',`−${g}% vs last year`],['Reason given',why],['One-time or lasting?','The company didn’t say it expects a quick recovery']],
+    ask:['Is the problem a one-time event or something that will keep hurting sales?','Do rivals face the same problem, or only this company?'],
     why:`${c.name} earned less than experts expected. Investors sell because they now think future profits will be lower too.`,
-    eff:{[c.t]:-rand(4,9)}})},
-  {k:'guideUp',w:0.7,earn:true,tag:'Earnings',make:c=>({surprise:0.12,
+    eff:{[c.t]:-rand(4,9)}};}},
+  {k:'guideUp',w:0.7,earn:true,tag:'Earnings',make:c=>{
+    const lo=rand(3,8), up=rand(1.06,1.15), why=pick(REASONS[c.t].good);
+    return {surprise:0.12,
     text:`${c.name} raises its full-year [[guidance|guidance]] on strong demand`,
+    plain:`${c.name} now expects to make more money this year than it predicted before.`,
+    story:`${c.name} now expects full-year profit of ${$n(lo*up)} to ${$n(lo*up*1.08)} per share, up from its earlier forecast of ${$n(lo)} to ${$n(lo*1.08)}. The company said ${why}.`,
+    clues:[['Old forecast',`${$n(lo)}–${$n(lo*1.08)} per share`],['New forecast',`${$n(lo*up)}–${$n(lo*up*1.08)} per share (about ${Math.round((up-1)*100)}% higher)`],['Reason',why]],
+    ask:['How much higher is the new forecast?','Is the reason likely to last beyond this year?'],
     why:`${c.name} told investors it now expects a better year. Because stock prices are about the future, a brighter forecast often matters more than past results.`,
-    eff:{[c.t]:rand(2.5,6)}})},
-  {k:'guideDown',w:0.7,earn:true,tag:'Earnings',make:c=>({related:growthRel(c),
+    eff:{[c.t]:rand(2.5,6)}};}},
+  {k:'guideDown',w:0.7,earn:true,tag:'Earnings',make:c=>{
+    const lo=rand(3,8), dn=rand(0.82,0.92), why=pick(REASONS[c.t].bad);
+    return {related:growthRel(c),
     text:`${c.name} cuts its [[guidance|guidance]], warning that sales are slowing`,
+    plain:`${c.name} now expects to make less money this year than it promised before.`,
+    story:`${c.name} lowered its full-year profit forecast to ${$n(lo*dn)} to ${$n(lo*dn*1.08)} per share, down from ${$n(lo)} to ${$n(lo*1.08)}. The company warned that ${why}, and said the slowdown could last into next year.`,
+    clues:[['Old forecast',`${$n(lo)}–${$n(lo*1.08)} per share`],['New forecast',`${$n(lo*dn)}–${$n(lo*dn*1.08)} per share (about ${Math.round((1-dn)*100)}% lower)`],['Reason',why],['How long?','Could last into next year']],
+    ask:['Does the slowdown sound temporary or long-lasting?','If you own this stock, is the reason you bought it still true?'],
     why:`${c.name} now expects a weaker year than it said before. A guidance cut is one of the most painful headlines for a stock because it lowers the whole outlook.`,
-    eff:{[c.t]:-rand(5,10)}})},
-  {k:'ceo',w:0.6,tag:'Company',make:c=>({
+    eff:{[c.t]:-rand(5,10)}};}},
+  {k:'ceo',w:0.6,tag:'Company',make:c=>{
+    const ceo=pick(PEOPLE), yrs=randInt(3,12), interim=pick(PEOPLE.filter(p=>p!==ceo));
+    return {
     text:`${c.name} [[ceo|CEO]] steps down unexpectedly`,
+    plain:`The person running ${c.name} suddenly quit, and the company hasn’t picked a permanent replacement.`,
+    story:`${ceo}, who has led ${c.name} for ${yrs} years, is leaving effective immediately. The company gave no reason. Its finance chief, ${interim}, will run the company while the board searches for a permanent [[ceo|CEO]], which it said could take several months.`,
+    clues:[['Time in charge',`${yrs} years`],['Reason given','None'],['Who’s in charge now',`${interim}, as a temporary leader`],['Permanent replacement','Not yet chosen']],
+    ask:['Was this planned, or a surprise? Surprises worry investors more.','Why might a company give no reason at all?'],
     why:`A surprise exit raises questions: is something wrong that the public doesn’t know yet? Investors dislike uncertainty, so the stock usually dips until a new leader is named.`,
-    eff:{[c.t]:-rand(2.5,6)}})},
-  {k:'probe',w:0.6,tag:'Company',make:c=>({
+    eff:{[c.t]:-rand(2.5,6)}};}},
+  {k:'probe',w:0.6,tag:'Company',make:c=>{
+    const fine=rand(1,6).toFixed(0);
+    return {
     text:`[[regulator|Regulators]] open an investigation into ${c.name}’s sales practices`,
+    plain:`Government officials want to know whether ${c.name} broke rules in how it sells to customers.`,
+    story:`The Veridia Trade Commission says it is looking into complaints that ${c.name} misled customers about fees and contract terms. The company says it follows all rules and will cooperate. Similar cases have ended in fines and required changes, but they often take a year or more to settle.`,
+    clues:[['Who’s investigating','Veridia Trade Commission'],['Accusation','Misleading customers about fees'],['Possible fine','Experts guess up to '+fine+'% of one year’s sales'],['Timeline','Often a year or more']],
+    ask:['Would the likely fine be small or large for a company this size?','Could forced changes hurt future sales, not just cost a one-time fine?'],
     why:`An investigation could end in fines or forced changes to how ${c.name} does business. Nobody knows how big the damage will be yet, and that uncertainty weighs on the stock.`,
-    eff:{[c.t]:-rand(3,8)}})},
-  {k:'launch',w:0.8,tag:'Company',make:c=>({surprise:0.15,
+    eff:{[c.t]:-rand(3,8)}};}},
+  {k:'launch',w:0.8,tag:'Company',make:c=>{
+    const add=randInt(2,7);
+    return {surprise:0.15,
     text:`${c.name} unveils ${c.product}, and early reviews are strong`,
+    plain:`${c.name} launched something new, and early feedback says it’s good.`,
+    story:`${c.name} introduced ${c.product}. Early reviewers praised it, and pre-orders came in ahead of the company’s plan. [[analyst|Analysts]] estimate it could add about ${add}% to yearly [[revenue|revenue]] within two years if demand holds up.`,
+    clues:[['What launched',c.product],['Early reaction','Strong reviews, pre-orders ahead of plan'],['Possible impact',`About +${add}% to yearly sales in two years`]],
+    ask:['How much could this actually add to total sales?','Did investors already know this launch was coming?'],
     why:`A hit product can mean years of new [[revenue|revenue]]. Strong early reviews make investors more confident about future sales.`,
-    eff:{[c.t]:rand(1.5,4.5)}})},
-  {k:'buyback',w:0.5,tag:'Company',make:c=>({
-    text:`${c.name} announces a $${randInt(1,4)} billion [[buyback|stock buyback]]`,
+    eff:{[c.t]:rand(1.5,4.5)}};}},
+  {k:'buyback',w:0.5,tag:'Company',make:c=>{
+    const b=randInt(1,4), pctSh=randInt(3,8);
+    return {
+    text:`${c.name} announces a $${b} billion [[buyback|stock buyback]]`,
+    plain:`${c.name} will use its own cash to buy back some of its shares from investors.`,
+    story:`${c.name} plans to spend $${b} billion buying its own shares over the next two years, about ${pctSh}% of all its shares. Fewer shares means each remaining share owns a slightly bigger slice of the company’s profits.`,
+    clues:[['Size',`$${b} billion, about ${pctSh}% of all shares`],['Timeframe','Two years'],['What it signals','Management thinks the stock is a good value']],
+    ask:['Is this a big buyback compared with the company’s size?','Would this cash be better spent growing the business?'],
     why:`Buying back shares spreads ${c.name}’s profits over fewer shares, and it signals that management thinks the stock is a good deal.`,
-    eff:{[c.t]:rand(1,3.5)}})},
-  {k:'dividend',w:0.5,tag:'Company',make:c=>({
-    text:`${c.name} raises its [[dividend|dividend]] by ${randInt(5,15)}%`,
+    eff:{[c.t]:rand(1,3.5)}};}},
+  {k:'dividend',w:0.5,tag:'Company',make:c=>{
+    const r=randInt(5,15), y=rand(1.5,4);
+    return {
+    text:`${c.name} raises its [[dividend|dividend]] by ${r}%`,
+    plain:`${c.name} will pay its shareholders more cash each quarter.`,
+    story:`${c.name} is increasing its quarterly [[dividend|dividend]] by ${r}%. At today’s price, the yearly payout equals about ${y.toFixed(1)}% of the stock price, which is called the dividend yield. The company said it is confident in its cash flow.`,
+    clues:[['Increase',`+${r}%`],['Dividend yield',`About ${y.toFixed(1)}% a year`],['Signal','Confidence in future cash']],
+    ask:['Is a payout of '+y.toFixed(1)+'% a year exciting, or just nice?','Can the company afford it if business slows?'],
     why:`A bigger dividend puts more cash in shareholders’ pockets and shows management is confident about future profits.`,
-    eff:{[c.t]:rand(0.5,2.5)}})},
-  {k:'upgrade',w:0.7,tag:'Analysts',make:c=>({
-    text:`[[analyst|Analysts]] at Coastline Capital [[upgrade|upgrade]] ${c.name} to “buy”`,
+    eff:{[c.t]:rand(0.5,2.5)}};}},
+  {k:'upgrade',w:0.7,tag:'Analysts',make:c=>{
+    const f=pick(FIRMS), a=pick(ANALYSTS), p=px(c), tgt=p*rand(1.15,1.35), why=pick(REASONS[c.t].good);
+    return {
+    text:`[[analyst|Analysts]] at ${f} [[upgrade|upgrade]] ${c.name} to “buy”`,
+    plain:`A research firm that studies companies now tells its clients ${c.name} is a good stock to buy.`,
+    story:`${a}, an [[analyst|analyst]] at ${f}, raised ${c.name} from “hold” to “buy.” The new [[price-target|price target]] is ${$n(tgt)}, about ${Math.round((tgt/p-1)*100)}% above today’s price of ${$n(p)}. The note argues that ${why}. Many fund managers read ${f}’s research, so its rating changes can nudge prices.`,
+    clues:[['Rating change','“hold” → “buy”'],['Price target',`${$n(tgt)} vs ${$n(p)} today (${Math.round((tgt/p-1)*100)}% upside)`],['Their reason',why]],
+    ask:['Is the reason new information, or something investors already knew?','One firm’s opinion: do you agree with its reasoning?'],
     why:`A respected research firm now recommends ${c.name}, and some investors follow its lead. Upgrades usually cause a modest, short-lived bump.`,
-    eff:{[c.t]:rand(1.5,4)}})},
-  {k:'downgrade',w:0.7,tag:'Analysts',make:c=>({
-    text:`[[analyst|Analysts]] at Coastline Capital [[downgrade|downgrade]] ${c.name} to “sell”`,
+    eff:{[c.t]:rand(1.5,4)}};}},
+  {k:'downgrade',w:0.7,tag:'Analysts',make:c=>{
+    const f=pick(FIRMS), a=pick(ANALYSTS), p=px(c), tgt=p*rand(0.75,0.9), why=pick(REASONS[c.t].bad);
+    return {
+    text:`[[analyst|Analysts]] at ${f} [[downgrade|downgrade]] ${c.name} to “sell”`,
+    plain:`A research firm that studies companies now tells its clients to sell ${c.name}, because it expects the stock to do worse than others.`,
+    story:`${a}, an [[analyst|analyst]] at ${f}, cut ${c.name} from “hold” to “sell.” The new [[price-target|price target]] is ${$n(tgt)}, about ${Math.round((1-tgt/p)*100)}% below today’s price of ${$n(p)}. The note warns that ${why}. Many fund managers read ${f}’s research, so its rating changes can nudge prices.`,
+    clues:[['Rating change','“hold” → “sell”'],['Price target',`${$n(tgt)} vs ${$n(p)} today (${Math.round((1-tgt/p)*100)}% downside)`],['Their reason',why]],
+    ask:['Is the reason new information, or something investors already knew?','Does one firm’s opinion change the company’s actual business?'],
     why:`A respected research firm now thinks ${c.name} will lag, and some investors sell in response. Downgrades usually cause a modest, short-lived dip.`,
-    eff:{[c.t]:-rand(2,5)}})},
+    eff:{[c.t]:-rand(2,5)}};}},
   {k:'deal',w:0.35,tag:'Deals',make:c=>{
-    const a=pick(COMPANIES.filter(x=>x.t!==c.t)); const prem=randInt(25,40);
+    const a=pick(COMPANIES.filter(x=>x.t!==c.t)); const prem=randInt(25,40), p=px(c), offer=p*(1+prem/100), mo=randInt(6,12);
     return {fixed:true,
       text:`${a.name} agrees to buy ${c.name} at a ${prem}% [[premium|premium]] in a major [[acquisition|acquisition]]`,
+      plain:`${a.name} wants to buy the whole company ${c.name}, and is offering more than its shares are worth today.`,
+      story:`${a.name} will pay ${$n(offer)} in cash for each ${c.name} share, ${prem}% more than its price of ${$n(p)}. Both boards approved the deal. It still needs a government sign-off and is expected to close in about ${mo} months.`,
+      clues:[['Offer per share',`${$n(offer)} vs ${$n(p)} today`],['Premium',`${prem}%`],['Still needed','Government approval'],['Expected to close',`In about ${mo} months`],['Buyer',`${a.name} (${a.t}), paying cash`]],
+      ask:['If you can get the offer price later, how much higher can the stock go now?','What happens to the stock if regulators block the deal?'],
       why:`${a.name} is offering more than ${c.name}’s current price, so ${c.name}’s stock jumps toward the offer, usually stopping a bit below it in case the deal falls apart. Buyers often slip because they’re spending a lot of cash.`,
       eff:{[c.t]:prem*rand(0.8,0.9),[a.t]:-rand(1,4)}};}},
-  {k:'approval',w:0.4,only:'PWP',tag:'Medicine',make:c=>({
+  {k:'approval',w:0.4,only:'PWP',tag:'Medicine',make:c=>{
+    const n=randInt(3,8), sales=randInt(2,5);
+    return {
     text:`Pulsewave Pharma wins [[drug-approval|approval]] for its new heart drug after a successful [[clinical-trial|clinical trial]]`,
+    plain:`Health officials said Pulsewave can start selling its new heart medicine.`,
+    story:`Regulators approved Pulsewave’s heart drug after a trial of ${n},000 patients showed it cut heart attacks by about a quarter. Pulsewave plans to start selling it next month. [[analyst|Analysts]] think yearly sales could reach $${sales} billion at their peak.`,
+    clues:[['Trial size',`${n},000 patients`],['Result','About 25% fewer heart attacks'],['Possible yearly sales',`$${sales} billion at peak`],['Launch','Next month']],
+    ask:['How big could this drug be compared with the whole company?','Was approval expected, or a surprise?'],
     why:`Approval means Pulsewave can finally sell a drug it spent years developing. That could mean billions in new [[revenue|revenue]].`,
-    eff:{PWP:rand(7,14)}})},
-  {k:'trialFail',w:0.35,only:'PWP',tag:'Medicine',make:c=>({
+    eff:{PWP:rand(7,14)}};}},
+  {k:'trialFail',w:0.35,only:'PWP',tag:'Medicine',make:c=>{
+    const yrs=randInt(6,10);
+    return {
     text:`Pulsewave Pharma’s cancer drug fails a late-stage [[clinical-trial|clinical trial]]`,
+    plain:`Pulsewave’s new cancer medicine didn’t work well enough in its final big test, so it likely won’t be sold.`,
+    story:`Pulsewave said its cancer drug did not help patients live longer than existing treatments in a late-stage [[clinical-trial|trial]]. The company had worked on it for ${yrs} years and investors had counted on it as a future best-seller. Pulsewave will stop development.`,
+    clues:[['Stage','Late-stage (the final test before approval)'],['Result','No better than existing treatments'],['Years invested',`${yrs}`],['What’s next','Development stopped']],
+    ask:['How much of the company’s future was riding on this drug?','Does Pulsewave have other products to fall back on?'],
     why:`Years of research, and the sales investors were counting on, just disappeared. Drug stocks can fall hard on a single trial result.`,
-    eff:{PWP:-rand(10,20)}})}
+    eff:{PWP:-rand(10,20)}};}}
 ];
+const MACRO_STORY = {
+  rateHike:{plain:'Veridia’s central bank made borrowing money more expensive, to slow down rising prices.',
+    story:'The Bank of Veridia raised its main rate from 4.25% to 4.75%, its third increase this year. Governor Elena Voss said prices are still rising faster than the 2% goal, and more increases are possible. Higher rates ripple out to mortgages, car loans and business loans.',
+    clues:[['Rate change','4.25% → 4.75%'],['Why','Inflation above the 2% goal'],['What’s next','More hikes possible'],['Who borrows most','Home and car buyers, fast-growing companies']],
+    ask:['Which companies need customers who borrow money?','Which company earns money by lending?']},
+  rateCut:{plain:'Veridia’s central bank made borrowing cheaper, to give a slowing economy a boost.',
+    story:'The Bank of Veridia cut its main rate from 4.75% to 4.25%, saying the economy is slowing and inflation is under control. Lower rates make mortgages, car loans and business loans cheaper.',
+    clues:[['Rate change','4.75% → 4.25%'],['Why','Slowing economy, inflation under control'],['Who benefits most','Borrowers: home and car buyers, growing companies']],
+    ask:['Which companies sell things people usually borrow to buy?','Is a slowing economy also a warning sign?']},
+  oilSpike:{plain:'Oil suddenly got much more expensive because less of it is available.',
+    story:'A major pipeline was shut down after a leak, cutting oil supply. Oil jumped 12%, to about $96 a barrel. Repairs could take several weeks.',
+    clues:[['Oil price','+12%, about $96 a barrel'],['Cause','Pipeline shutdown'],['How long','Several weeks of repairs'],['Sells oil','Ridgeline Energy'],['Burns fuel','SkyHarbor Airlines']],
+    ask:['Which company sells oil, and which burns lots of it?','Is the shortage temporary?']},
+  oilDrop:{plain:'Oil got cheaper because producers are pumping more than people need.',
+    story:'Oil producers are pumping more than the world is using, and oil fell 10% to about $72 a barrel. Traders expect extra supply for at least a few months.',
+    clues:[['Oil price','−10%, about $72 a barrel'],['Cause','Too much supply'],['How long','At least a few months'],['Sells oil','Ridgeline Energy'],['Burns fuel','SkyHarbor Airlines']],
+    ask:['Who earns less when oil is cheap, and who saves money?']},
+  strongJobs:{plain:'More people found jobs last month than expected, a sign the economy is healthy.',
+    story:'Veridian employers added 285,000 jobs last month, far more than the 180,000 economists expected, and unemployment fell to 3.6%. Wages rose 4% from a year ago.',
+    clues:[['Jobs added','285,000 vs 180,000 expected'],['Unemployment','Fell to 3.6%'],['Wages','+4% vs last year']],
+    ask:['Which businesses do better when people have paychecks to spend?','Could rising wages also push up inflation?']},
+  weakJobs:{plain:'Fewer people found jobs than expected, and more people are out of work. The economy may be slowing.',
+    story:'Employers added just 40,000 jobs last month, well below the 160,000 economists expected, and unemployment rose to 5.1%. Some economists now warn of a [[recession|recession]] within a year.',
+    clues:[['Jobs added','40,000 vs 160,000 expected'],['Unemployment','Rose to 5.1%'],['Worry','Possible recession']],
+    ask:['Which companies sell things people keep buying even in hard times?','Which sell things people put off when money is tight?']},
+  hotInflation:{plain:'Prices are rising faster than expected, so the central bank will likely raise interest rates.',
+    story:'Prices rose 4.8% over the past year, more than the 4.1% economists expected, led by rent, energy and groceries. Traders now expect the Bank of Veridia to raise rates at its next meeting.',
+    clues:[['Inflation','4.8% vs 4.1% expected'],['Biggest rises','Rent, energy, groceries'],['Likely next step','Rate hike']],
+    ask:['If rates go up next, who gets hurt?','Which companies can raise their own prices to keep up?']},
+  coolInflation:{plain:'Prices are rising more slowly, so the central bank may stop raising interest rates.',
+    story:'Prices rose 2.1% over the past year, close to the Bank of Veridia’s 2% goal and below the 2.8% expected. Traders now think rate hikes are over and cuts may come later.',
+    clues:[['Inflation','2.1% vs 2.8% expected'],['Goal','2%'],['Likely next step','No more hikes; cuts possible']],
+    ask:['Which companies benefit most if interest rates stop rising?']},
+  travelScare:{plain:'A fast-spreading flu has people canceling trips and staying home.',
+    story:'Health officials warned that a new flu strain is spreading quickly and advised people to avoid unnecessary travel. Airlines say bookings fell sharply in two days. Officials expect the warning to last several weeks.',
+    clues:[['Advice','Avoid unnecessary travel'],['Airline bookings','Falling sharply'],['How long','Several weeks'],['People at home','Stream more, stock up on groceries, buy medicine']],
+    ask:['What do people stop doing, and what do they do more of?']},
+  chipSqueeze:{plain:'There aren’t enough computer chips to go around, so the chipmaker can charge more while carmakers wait.',
+    story:'Demand for computer chips is outrunning supply. Lumen Chips is raising prices about 8%, and Cobalt Motors says it may build fewer cars this quarter while it waits for parts.',
+    clues:[['Chip prices','About +8%'],['Who has the chips','Lumen Chips'],['Who needs them','Cobalt Motors (and other carmakers)']],
+    ask:['Who gains pricing power in a shortage, and who gets squeezed?']}
+};
 
 function generate(){
   const earn = isEarnings(S.day);
   const pool = [];
-  MACRO.forEach(m => pool.push({k:m.k, w:earn?0.45:1, run:()=>({tag:m.tag,related:m.related||null,text:m.text,why:m.why,eff:m.eff()})}));
+  MACRO.forEach(m => pool.push({k:m.k, w:earn?0.45:1, run:()=>Object.assign({tag:m.tag,related:m.related||null,text:m.text,why:m.why,eff:m.eff()}, MACRO_STORY[m.k]||{})}));
   CEV.forEach(ce => pool.push({k:ce.k, w:ce.w*(earn&&ce.earn?4:1), run:()=>{
     const c = ce.only ? co(ce.only) : pick(COMPANIES);
     return Object.assign({tag:ce.tag}, ce.make(c));
@@ -540,7 +696,12 @@ function generate(){
     if(surprised && t===target) a = -Math.sign(v)*rand(0.8,2.5);
     actual[t] = Math.round(a*100)/100;
   });
-  return {id:++S.uid, kind:chosen.k, day:S.day, tag:raw.tag, related:raw.related||null, text:raw.text, why:raw.why, target, actual, surprised, phase:'new', guess:null, correct:null};
+  const clues = (raw.clues||[]).slice();
+  if(raw.surprise){
+    const tc=co(target), hint = surprised ? Math.random()<0.8 : Math.random()<0.2;
+    clues.push(['Before the news', hint ? `${tc.t} already climbed about ${randInt(8,15)}% over the past month as investors bet on good news` : `${tc.t} was roughly flat over the past month`]);
+  }
+  return {id:++S.uid, kind:chosen.k, day:S.day, tag:raw.tag, related:raw.related||null, text:raw.text, why:raw.why, plain:raw.plain||'', story:raw.story||'', clues, ask:raw.ask||[], target, actual, surprised, phase:'new', guess:null, correct:null};
 }
 
 /* ---------- state ---------- */
@@ -731,6 +892,14 @@ function coachBox(ev){
   const k=coach(ev); if(!k) return '';
   return `<div class="coach ${k.g}"><span class="lbl">Coach</span><h3>${k.t}</h3><p>${renderText(k.b, ev.id)}</p>${laterLine(ev)}</div>`;
 }
+function storyBox(ev){
+  if(!ev.story && !ev.plain) return '';
+  return `${ev.plain?`<p class="plain"><b>In plain English</b>${renderText(ev.plain, ev.id)}</p>`:''}
+    ${ev.story?`<p class="story">${renderText(ev.story, ev.id)}</p>`:''}
+    ${(ev.clues&&ev.clues.length)||(ev.ask&&ev.ask.length)?`<div class="clues"><h3>Clues to analyze</h3>
+      ${ev.clues&&ev.clues.length?`<dl>${ev.clues.map(([l,v])=>`<dt>${l}</dt><dd>${renderText(v, ev.id)}</dd>`).join('')}</dl>`:''}
+      ${ev.ask&&ev.ask.length?`<ul>${ev.ask.map(q=>`<li>${renderText(q, ev.id)}</li>`).join('')}</ul>`:''}</div>`:''}`;
+}
 function watchBox(ev, before){
   const w=WATCH[ev.kind]; if(!w) return '';
   return `<div class="watch"><strong>${before?'Before you decide':'What to watch for'}:</strong> ${renderText(w, ev.id)}</div>`;
@@ -777,7 +946,7 @@ function renderBreaking(){
   const c=co(ev.target);
   const head = `<p class="b-meta"><span class="tag">${ev.tag}</span><span>${dateStr(ev.day)}</span></p><h1 class="b-head">${renderText(ev.text, ev.id)}</h1>`;
   if(ev.phase==='guess'){
-    box.innerHTML = head + decidePanel(ev) + (gsecs() ? `<div class="b-timer"><span id="tbar" style="width:${guessLeft/gsecs()*100}%"></span></div>
+    box.innerHTML = head + storyBox(ev) + decidePanel(ev) + (gsecs() ? `<div class="b-timer"><span id="tbar" style="width:${guessLeft/gsecs()*100}%"></span></div>
       <p class="b-hint">Buy if you think it’ll rise, sell if you think it’ll fall. The market reacts in <span id="secs" class="num">${guessLeft}</span> seconds; standing counts as no guess.</p>`
       : `<p class="b-hint" style="margin-top:12px">Buy if you think it’ll rise, sell if you think it’ll fall. No time limit: the market waits for you. Standing counts as no guess.</p>`);
     return;
@@ -788,7 +957,7 @@ function renderBreaking(){
   else if(ev.action==='stand') verdict = 'You stood still on this one.';
   if(ev.tradeMsg) verdict = ev.tradeMsg + ' ' + verdict;
   const hist = ev.related ? HISTORY.find(h=>h.id===ev.related) : null;
-  box.innerHTML = head + `<p class="b-move num ${cls(v)}">${c.name} ${pct(v)}</p>
+  box.innerHTML = head + storyBox(ev) + `<p class="b-move num ${cls(v)}">${c.name} ${pct(v)}</p>
     ${verdict?`<p class="b-verdict">${verdict}</p>`:''}
     ${ev.surprised?`<p class="b-note">Surprise: investors had already <button type="button" class="term" data-term="priced-in" data-ev="${ev.id}">priced in</button> the good news, so the stock slipped anyway.</p>`:''}
     <p class="b-why">${renderText(ev.why, ev.id)}</p>
@@ -814,7 +983,7 @@ function renderFeed(){
     return `<li><span class="f-day">${dateStr(ev.day)}</span>
       <p class="f-text">${renderText(ev.text, ev.id)}</p>
       ${done?`<ul class="chips"><li class="chip ${v>=0?'u':'d'} num">${ev.target} ${pct(v)}</li>${ev.guess?`<li class="chip ${ev.correct?'u':'d'}">${ev.correct?'Called it':'Missed'}</li>`:''}</ul>
-      <details><summary>Why it moved${ev.action?' and how you did':''}</summary><p>${renderText(ev.why, ev.id)}</p>${ev.phase==='done'?coachBox(ev)+watchBox(ev,false):''}</details>`:'<span class="f-day">Waiting for the market to react…</span>'}
+      <details><summary>The full story${ev.action?' and how you did':''}</summary>${storyBox(ev)}<p><strong>Why it moved.</strong> ${renderText(ev.why, ev.id)}</p>${ev.phase==='done'?coachBox(ev)+watchBox(ev,false):''}</details>`:'<span class="f-day">Waiting for the market to react…</span>'}
     </li>`;
   }).join('');
 }
