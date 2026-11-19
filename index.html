@@ -73,6 +73,8 @@ button,input{font:inherit;color:inherit}
 .big.up{background:var(--up);color:#fff}
 .big.down{background:var(--down);color:#fff}
 .big.ghost{background:transparent;border-color:var(--line)}
+.b-btns .qty{display:flex;align-items:center;gap:6px;font-weight:700}
+.b-btns .qty input{width:80px;padding:9px 10px;border:1px solid var(--line);border-radius:10px;background:var(--surface2)}
 .b-timer{height:8px;background:var(--surface2);border-radius:99px;margin:16px 0 6px;overflow:hidden;max-width:520px}
 .b-timer span{display:block;height:100%;background:var(--gold);border-radius:99px;transition:width 1s linear}
 .b-hint{color:var(--muted);font-size:.92rem;margin:0}
@@ -533,6 +535,7 @@ function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} 
 const st = t => S.stocks.find(s=>s.t===t);
 const liveEv = () => S.feed.find(e=>e.id===S.live);
 const guessPending = () => { const ev=liveEv(); return !!ev && ev.phase==='guess'; };
+const waiting = () => { const ev=liveEv(); return !!ev && (ev.phase==='guess' || ev.phase==='decide'); };
 function indexVal(){ return S.stocks.reduce((s,x)=>s + x.price/co(x.t).price, 0)/S.stocks.length*1000; }
 function worth(){ return S.cash + Object.entries(S.pos).reduce((s,[t,p])=>s + p.qty*st(t).price, 0); }
 
@@ -568,28 +571,60 @@ function breakNews(){
   S.feed.unshift(ev); if(S.feed.length>60) S.feed.pop();
   S.live = ev.id;
   if(S.mode==='guess'){ ev.phase='guess'; startGuess(); }
-  else { applyEvent(ev); ev.phase='done'; }
+  else { applyEvent(ev); ev.phase='decide'; stopClock(); }
 }
-function startClock(){ stopClock(); if(S.running && !guessPending()) timer=setInterval(tick, SPEEDS[S.speed]); }
+function startClock(){ stopClock(); if(S.running && !waiting() && !$('dlg').open) timer=setInterval(tick, SPEEDS[S.speed]); }
 function stopClock(){ if(timer){ clearInterval(timer); timer=null; } }
 function startGuess(){
   stopClock(); clearInterval(guessTimer); guessLeft=GUESS_SECS;
   guessTimer=setInterval(()=>{
-    if(document.hidden) return;
+    if(document.hidden || $('dlg').open) return;
     guessLeft--; updateCountdown();
     if(guessLeft<=0) resolveGuess(null);
   },1000);
 }
-function resolveGuess(choice){
+function newsTrade(t, side){
+  const s=st(t), c=co(t); const inp=$('dq');
+  let q=Math.floor(+(inp?inp.value:10)); if(!(q>0)) q=10;
+  if(side==='buy'){
+    const n=Math.min(q, Math.floor(S.cash/s.price));
+    if(n<1) return `Not enough cash to buy ${c.t}, so you stood still.`;
+    const p=S.pos[t]||{qty:0,cost:0};
+    p.cost=(p.cost*p.qty+n*s.price)/(p.qty+n); p.qty+=n; S.pos[t]=p; S.cash-=n*s.price;
+    return `You bought ${n} ${c.t} at ${money(s.price)}${n<q?', all your cash could cover':''}.`;
+  }
+  const p=S.pos[t];
+  if(!p) return `You don’t own ${c.t}, so selling was a prediction only.`;
+  const n=Math.min(q,p.qty); p.qty-=n; S.cash+=n*s.price; if(!p.qty) delete S.pos[t];
+  return `You sold ${n} ${c.t} at ${money(s.price)}.`;
+}
+function resolveGuess(act){
   clearInterval(guessTimer);
   const ev=liveEv(); if(!ev || ev.phase!=='guess') return;
-  applyEvent(ev); ev.phase='done'; ev.guess=choice;
+  act = act || 'stand';
+  ev.action=act; ev.tradeMsg = act==='stand' ? '' : newsTrade(ev.target, act);
+  applyEvent(ev); ev.phase='done';
+  const choice = act==='buy' ? 'up' : act==='sell' ? 'down' : null;
+  ev.guess=choice;
   if(choice){
     const v=ev.actual[ev.target]; const ok=(choice==='up')===(v>0);
     ev.correct=ok; S.score.total++;
     if(ok){ S.score.right++; S.score.streak++; } else S.score.streak=0;
   }
-  save(); render(); startClock();
+  save(); lastDetail=''; render(); startClock();
+}
+function resolveDecide(act){
+  const ev=liveEv(); if(!ev || ev.phase!=='decide') return;
+  ev.action=act; ev.tradeMsg = act==='stand' ? '' : newsTrade(ev.target, act);
+  ev.phase='done';
+  save(); lastDetail=''; render(); startClock();
+}
+function decidePanel(ev){
+  const c=co(ev.target), s=st(ev.target), p=S.pos[ev.target];
+  return `<p class="b-q">What will you do with <strong>${c.name}</strong> (${c.t}) at ${money(s.price)}?</p>
+    <div class="b-btns"><label class="qty">Shares <input id="dq" type="number" min="1" step="1" value="10" inputmode="numeric"></label>
+    <button class="big up" data-act="buy">Buy</button><button class="big down" data-act="sell">Sell</button><button class="big ghost" data-act="stand">Stand</button></div>
+    <p class="b-hint" style="margin-top:8px">You own ${p?p.qty:0} shares of ${c.t} and have ${money(S.cash)} in cash.${p?'':' With no shares, selling counts as a prediction only.'}</p>`;
 }
 
 /* ---------- rendering ---------- */
@@ -620,29 +655,29 @@ function renderBreaking(){
   if(!ev){
     box.innerHTML = `<p class="b-meta"><span class="tag">Market open</span></p>
       <h1 class="b-head">Welcome to Veridia, where a year passes in under an hour.</h1>
-      <p class="b-sub">You start with $10,000 of pretend money. Each game day lasts 10 seconds, and headlines will start dropping in a few game days. Watch how each one moves the stocks, and click any <button type="button" class="term" data-term="volatility">blue word</button> to learn what it means. ${S.mode==='guess'?'In Guess mode the clock stops when news breaks, and you get '+GUESS_SECS+' seconds to call the move.':'Switch to Guess mode when you’re ready to call the moves yourself.'}</p>`;
+      <p class="b-sub">You start with $10,000 of pretend money. Each game day lasts 10 seconds, and headlines will start dropping in a few game days. Watch how each one moves the stocks, and click any <button type="button" class="term" data-term="volatility">blue word</button> to learn what it means. ${S.mode==='guess'?'When news breaks, the clock stops and you get '+GUESS_SECS+' seconds to buy, sell or stand before the market reacts.':'When news breaks, the game pauses so you can see why stocks moved, then buy, sell or stand. Switch to Guess mode to make your move before the market reacts.'}</p>`;
     return;
   }
   const c=co(ev.target);
   const head = `<p class="b-meta"><span class="tag">${ev.tag}</span><span>${dateStr(ev.day)}</span></p><h1 class="b-head">${renderText(ev.text, ev.id)}</h1>`;
   if(ev.phase==='guess'){
-    box.innerHTML = head + `<p class="b-q">Which way will <strong>${c.name}</strong> (${c.t}) move?</p>
-      <div class="b-btns"><button class="big up" data-guess="up">Up</button><button class="big down" data-guess="down">Down</button><button class="big ghost" data-guess="skip">Skip</button></div>
-      <div class="b-timer"><span id="tbar" style="width:${guessLeft/GUESS_SECS*100}%"></span></div>
-      <p class="b-hint">The market reacts in <span id="secs" class="num">${guessLeft}</span> seconds. You can still trade at today’s prices until then.</p>`;
+    box.innerHTML = head + decidePanel(ev) + `<div class="b-timer"><span id="tbar" style="width:${guessLeft/GUESS_SECS*100}%"></span></div>
+      <p class="b-hint">Buy if you think it’ll rise, sell if you think it’ll fall. The market reacts in <span id="secs" class="num">${guessLeft}</span> seconds; standing counts as no guess.</p>`;
     return;
   }
   const v=ev.actual[ev.target];
   let verdict='';
-  if(ev.guess) verdict = ev.correct ? `You guessed ${ev.guess} and called it.${S.score.streak>1?` That’s ${S.score.streak} in a row.`:''}` : `You guessed ${ev.guess}. Not this time; here’s why.`;
-  else if(S.mode==='guess') verdict = 'No guess this time.';
+  if(ev.guess) verdict = ev.correct ? `You called it.${S.score.streak>1?` That’s ${S.score.streak} in a row.`:''}` : `It went the other way this time; here’s why.`;
+  else if(ev.action==='stand') verdict = 'You stood still on this one.';
+  if(ev.tradeMsg) verdict = ev.tradeMsg + ' ' + verdict;
   const hist = ev.related ? HISTORY.find(h=>h.id===ev.related) : null;
   box.innerHTML = head + `<p class="b-move num ${cls(v)}">${c.name} ${pct(v)}</p>
     ${verdict?`<p class="b-verdict">${verdict}</p>`:''}
     ${ev.surprised?`<p class="b-note">Surprise: investors had already <button type="button" class="term" data-term="priced-in" data-ev="${ev.id}">priced in</button> the good news, so the stock slipped anyway.</p>`:''}
     <p class="b-why">${renderText(ev.why, ev.id)}</p>
     ${moveChips(ev, ev.target)}
-    ${hist?`<a class="real" href="#history" data-jump="${hist.id}">See it in real life: ${hist.title} (${hist.year})</a>`:''}`;
+    ${hist?`<a class="real" href="#history" data-jump="${hist.id}">See it in real life: ${hist.title} (${hist.year})</a>`:''}
+    ${ev.phase==='decide' ? decidePanel(ev) + '<p class="b-hint">The game is paused until you choose.</p>' : ''}`;
 }
 function updateCountdown(){
   const s=$('secs'), b=$('tbar');
@@ -656,7 +691,7 @@ function renderFeed(){
   if(key===lastFeedKey) return; lastFeedKey=key;
   if(!S.feed.length){ $('feed').innerHTML='<li class="empty">No news yet. The first headline is on its way.</li>'; return; }
   $('feed').innerHTML = S.feed.map(ev=>{
-    const done = ev.phase==='done';
+    const done = ev.phase!=='guess';
     const v = done ? ev.actual[ev.target] : null;
     return `<li><span class="f-day">${dateStr(ev.day)}</span>
       <p class="f-text">${renderText(ev.text, ev.id)}</p>
@@ -775,8 +810,10 @@ function openTerm(k, evId){
   const ev = evId ? S.feed.find(e=>e.id===+evId) : null;
   $('dlg-body').innerHTML = `<h3>${t.n}</h3><p>${t.d}</p><p style="color:var(--muted)">Example: ${t.e}</p>
     ${ev?`<div class="ctx"><strong>In this headline</strong>${renderText(ev.why, ev.id)}</div>`:''}
+    <p style="color:var(--muted);font-size:.88rem;margin:12px 0 0">The game is paused while you read.</p>
     <div class="dlg-foot"><a href="#terms" data-close>See all key terms</a><button class="btn plain" data-close>Close</button></div>`;
   const d=$('dlg'); if(!d.open) d.showModal();
+  stopClock();
 }
 
 /* ---------- routing ---------- */
@@ -798,15 +835,17 @@ document.addEventListener('click', e=>{
   const term=e.target.closest('.term'); if(term){ openTerm(term.dataset.term, term.dataset.ev); return; }
   const close=e.target.closest('[data-close]'); if(close){ $('dlg').close(); return; }
   const jump=e.target.closest('[data-jump]'); if(jump){ jumpTo=jump.dataset.jump; if(location.hash==='#history'){ e.preventDefault(); route(); } return; }
-  const g=e.target.closest('[data-guess]'); if(g){ resolveGuess(g.dataset.guess==='skip'?null:g.dataset.guess); return; }
+  const act=e.target.closest('[data-act]'); if(act){ const ev=liveEv(); if(ev && ev.phase==='guess') resolveGuess(act.dataset.act); else resolveDecide(act.dataset.act); return; }
   const row=e.target.closest('.row'); if(row){ selected=row.dataset.t; renderRows(); renderDetail(); return; }
   const sp=e.target.closest('[data-speed]'); if(sp){ S.speed=+sp.dataset.speed; save(); renderStrip(); startClock(); return; }
   const md=e.target.closest('[data-mode]'); if(md){
     S.mode=md.dataset.mode;
-    if(S.mode==='learn' && guessPending()) resolveGuess(null);
+    if(S.mode==='learn' && guessPending()) resolveGuess('stand');
+    if(S.mode==='guess'){ const ev=liveEv(); if(ev && ev.phase==='decide') resolveDecide('stand'); }
     save(); lastBreakKey=''; render(); return; }
 });
 $('dlg').addEventListener('click', e=>{ if(e.target===$('dlg')) $('dlg').close(); });
+$('dlg').addEventListener('close', ()=>startClock());
 $('play').addEventListener('click', ()=>{ S.running=!S.running; save(); renderStrip(); if(S.running) startClock(); else stopClock(); });
 $('buy').addEventListener('click', ()=>trade('buy'));
 $('sell').addEventListener('click', ()=>trade('sell'));
