@@ -35,6 +35,9 @@ button,input{font:inherit;color:inherit}
 .tabs{display:flex;gap:4px}
 .tabs a{color:var(--ink);text-decoration:none;padding:8px 12px;border-radius:999px;font-weight:700;font-size:.95rem}
 .tabs a:hover{background:var(--surface2)}
+.tabs a.fb{border:1.5px solid var(--gold);color:var(--gold)}
+.tabs a.fb:hover{background:var(--gold);color:var(--onaccent)}
+.tabs{flex-wrap:wrap}
 .tabs a[aria-current="page"]{background:var(--gold);color:var(--onaccent)}
 
 /* control strip */
@@ -206,6 +209,7 @@ footer{color:var(--muted);font-size:.85rem;padding:24px 0 32px;max-width:70ch}
       <a href="#market" data-view="market">Market</a>
       <a href="#terms" data-view="terms">Key terms</a>
       <a href="#history" data-view="history">Past events</a>
+      <a class="fb" href="https://docs.google.com/forms/d/1TCtNgMFOhDU-eLNekAt8LlV4Gqw51IkLhDnaf6Eyarg/viewform" target="_blank" rel="noopener">Give feedback</a>
     </nav>
   </div>
 </header>
@@ -298,7 +302,7 @@ footer{color:var(--muted);font-size:.85rem;padding:24px 0 32px;max-width:70ch}
     <div class="hist" id="hist"></div>
   </section>
 
-  <footer>MarketMind is a learning game set in a made-up country. The companies and headlines are fictional, prices use pretend money, and nothing here is financial advice.</footer>
+  <footer>MarketMind is a learning game set in a made-up country. The companies and headlines are fictional, prices use pretend money, and nothing here is financial advice. Enjoying it, or found something confusing? <a href="https://docs.google.com/forms/d/1TCtNgMFOhDU-eLNekAt8LlV4Gqw51IkLhDnaf6Eyarg/viewform" target="_blank" rel="noopener" style="color:var(--gold);font-weight:700">Tell us what you think</a>.</footer>
 </main>
 
 <dialog id="dlg"><div class="dlg" id="dlg-body"></div></dialog>
