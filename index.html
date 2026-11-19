@@ -58,6 +58,13 @@ button,input{font:inherit;color:inherit}
 .ctrl button{border:0;background:transparent;padding:6px 11px;border-radius:7px;cursor:pointer;font-weight:700;font-size:.9rem}
 .ctrl button[aria-pressed="true"]{background:var(--ink);color:var(--surface)}
 .index{margin-left:auto;display:flex;gap:8px;align-items:baseline}
+.gear{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:6px 12px;font-weight:700;font-size:.9rem;cursor:pointer}
+.gear[aria-expanded="true"]{background:var(--ink);color:var(--surface)}
+.settings{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin:0 0 14px;display:flex;flex-wrap:wrap;gap:12px 28px;align-items:flex-start}
+.setting{display:grid;gap:6px}
+.setting>span{font-weight:700;font-size:.95rem}
+.setting small{color:var(--muted);font-size:.84rem;max-width:34ch}
+.setting select{padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface2);max-width:200px}
 .index b{font-size:1.05rem}
 .up-t{color:var(--up)} .down-t{color:var(--down)}
 
@@ -212,8 +219,20 @@ footer{color:var(--muted);font-size:.85rem;padding:24px 0 32px;max-width:70ch}
         <button data-mode="learn">Learning</button>
         <button data-mode="guess">Guess</button>
       </div>
+      <button class="gear" id="gear" aria-expanded="false" aria-controls="settings">⚙ Settings</button>
       <div class="index num"><span>Veridia index</span><b id="idx"></b><span id="idxc"></span></div>
     </div>
+
+    <section class="settings" id="settings" aria-label="Game settings" hidden>
+      <label class="setting"><span>Guess mode timer</span>
+        <select id="set-timer">
+          <option value="5">5 seconds</option><option value="8">8 seconds</option><option value="12">12 seconds</option>
+          <option value="20">20 seconds</option><option value="30">30 seconds</option><option value="60">1 minute</option>
+          <option value="0">No time limit</option>
+        </select>
+        <small>How long you get to buy, sell or stand before the market reacts.</small>
+      </label>
+    </section>
 
     <section class="breaking" id="breaking" aria-live="polite"></section>
 
@@ -520,7 +539,7 @@ function generate(){
 const KEY='marketmind-veridia-v1';
 const SPEEDS={1:10000,2:5000,4:2500};
 let S, timer=null, guessTimer=null, guessLeft=0, selected='LMC', lastBreakKey='', lastFeedKey='';
-const GUESS_SECS=12;
+const gsecs = () => (S && S.guessSecs!=null) ? S.guessSecs : 12;
 
 function newState(){
   return {day:0,cash:10000,start:10000,mode:'learn',speed:1,running:true,
@@ -576,7 +595,8 @@ function breakNews(){
 function startClock(){ stopClock(); if(S.running && !waiting() && !$('dlg').open) timer=setInterval(tick, SPEEDS[S.speed]); }
 function stopClock(){ if(timer){ clearInterval(timer); timer=null; } }
 function startGuess(){
-  stopClock(); clearInterval(guessTimer); guessLeft=GUESS_SECS;
+  stopClock(); clearInterval(guessTimer); guessLeft=gsecs();
+  if(!gsecs()) return;
   guessTimer=setInterval(()=>{
     if(document.hidden || $('dlg').open) return;
     guessLeft--; updateCountdown();
@@ -655,14 +675,15 @@ function renderBreaking(){
   if(!ev){
     box.innerHTML = `<p class="b-meta"><span class="tag">Market open</span></p>
       <h1 class="b-head">Welcome to Veridia, where a year passes in under an hour.</h1>
-      <p class="b-sub">You start with $10,000 of pretend money. Each game day lasts 10 seconds, and headlines will start dropping in a few game days. Watch how each one moves the stocks, and click any <button type="button" class="term" data-term="volatility">blue word</button> to learn what it means. ${S.mode==='guess'?'When news breaks, the clock stops and you get '+GUESS_SECS+' seconds to buy, sell or stand before the market reacts.':'When news breaks, the game pauses so you can see why stocks moved, then buy, sell or stand. Switch to Guess mode to make your move before the market reacts.'}</p>`;
+      <p class="b-sub">You start with $10,000 of pretend money. Each game day lasts 10 seconds, and headlines will start dropping in a few game days. Watch how each one moves the stocks, and click any <button type="button" class="term" data-term="volatility">blue word</button> to learn what it means. ${S.mode==='guess'?'When news breaks, the clock stops and you get '+(gsecs()?gsecs()+' seconds':'as long as you like')+' to buy, sell or stand before the market reacts.':'When news breaks, the game pauses so you can see why stocks moved, then buy, sell or stand. Switch to Guess mode to make your move before the market reacts.'}</p>`;
     return;
   }
   const c=co(ev.target);
   const head = `<p class="b-meta"><span class="tag">${ev.tag}</span><span>${dateStr(ev.day)}</span></p><h1 class="b-head">${renderText(ev.text, ev.id)}</h1>`;
   if(ev.phase==='guess'){
-    box.innerHTML = head + decidePanel(ev) + `<div class="b-timer"><span id="tbar" style="width:${guessLeft/GUESS_SECS*100}%"></span></div>
-      <p class="b-hint">Buy if you think it’ll rise, sell if you think it’ll fall. The market reacts in <span id="secs" class="num">${guessLeft}</span> seconds; standing counts as no guess.</p>`;
+    box.innerHTML = head + decidePanel(ev) + (gsecs() ? `<div class="b-timer"><span id="tbar" style="width:${guessLeft/gsecs()*100}%"></span></div>
+      <p class="b-hint">Buy if you think it’ll rise, sell if you think it’ll fall. The market reacts in <span id="secs" class="num">${guessLeft}</span> seconds; standing counts as no guess.</p>`
+      : `<p class="b-hint" style="margin-top:12px">Buy if you think it’ll rise, sell if you think it’ll fall. No time limit: the market waits for you. Standing counts as no guess.</p>`);
     return;
   }
   const v=ev.actual[ev.target];
@@ -682,7 +703,7 @@ function renderBreaking(){
 function updateCountdown(){
   const s=$('secs'), b=$('tbar');
   if(s) s.textContent=Math.max(0,guessLeft);
-  if(b) b.style.width = Math.max(0,guessLeft/GUESS_SECS*100)+'%';
+  if(b && gsecs()) b.style.width = Math.max(0,guessLeft/gsecs()*100)+'%';
 }
 
 function renderFeed(){
@@ -846,6 +867,12 @@ document.addEventListener('click', e=>{
 });
 $('dlg').addEventListener('click', e=>{ if(e.target===$('dlg')) $('dlg').close(); });
 $('dlg').addEventListener('close', ()=>startClock());
+$('gear').addEventListener('click', ()=>{ const open=$('settings').hidden; $('settings').hidden=!open; $('gear').setAttribute('aria-expanded', String(open)); });
+$('set-timer').addEventListener('change', e=>{
+  S.guessSecs=+e.target.value; save();
+  if(guessPending()){ startGuess(); lastBreakKey=''; renderBreaking(); }
+  else { lastBreakKey=''; renderBreaking(); }
+});
 $('play').addEventListener('click', ()=>{ S.running=!S.running; save(); renderStrip(); if(S.running) startClock(); else stopClock(); });
 $('buy').addEventListener('click', ()=>trade('buy'));
 $('sell').addEventListener('click', ()=>trade('sell'));
@@ -859,6 +886,7 @@ document.addEventListener('visibilitychange', ()=>{ if(document.hidden) stopCloc
 
 /* ---------- start ---------- */
 S=load();
+$('set-timer').value = String(gsecs());
 buildRows();
 render();
 route();
